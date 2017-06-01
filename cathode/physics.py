@@ -11,7 +11,7 @@ import numpy as np
 import re
 from scipy.interpolate import splrep,splev
 from scipy.integrate import quad
-import constants as cc
+import cathode.constants as cc
 
 ###############################################################################
 #%%                         Basic Plasma Physics
@@ -55,7 +55,7 @@ def charge_exchange_xsec(TeV,species='Xe'):
     """
     consts={
             'Xe':[87.3,13.6],
-            'Xe2+':[45.7,8.9]
+            'Xe2+':[45.7,8.9],
             'Ar':[0,0],
             'Kr':[80.7,14.7],
             'Kr2+':[44.6,9.8]}
