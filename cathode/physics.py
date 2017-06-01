@@ -55,9 +55,10 @@ def charge_exchange_xsec(TeV,species='Xe'):
     """
     consts={
             'Xe':[87.3,13.6],
-            'Xe2+':[45.7,]
+            'Xe2+':[45.7,8.9]
             'Ar':[0,0],
-            'Kr':[80.7,14.7]}
+            'Kr':[80.7,14.7],
+            'Kr2+':[44.6,9.8]}
     
     A,B = consts[species]
     
