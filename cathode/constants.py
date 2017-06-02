@@ -14,9 +14,9 @@ from scipy.constants import (speed_of_light,Boltzmann,electron_volt,
                              elementary_charge,electron_mass,torr,
                              atomic_mass,epsilon_0,gas_constant)
 
-###################################################################
-#  Physical constants/Energy conversions/Mass conversions
-###################################################################
+###############################################################################
+#       Physical constants/Energy conversions/Mass conversions
+###############################################################################
 
 #centimeter (cm to m)
 cm = 1.0E-2
@@ -64,9 +64,9 @@ u_eV = u/(eV/(c**2))
 Kelvin2eV = kB/e
 eV2Kelvin = e/kB
 
-###################################################################
-#  Pressure/Flow conversions
-###################################################################
+###############################################################################
+#                           Pressure/Flow conversions
+###############################################################################
 
 #Torr (Torr to Pascal)
 Torr = torr
@@ -77,12 +77,15 @@ Pa2eVm3 = (1/e)
 #Torr to eV/m^3
 Torr2eVm3 = Torr/e
 
-###################################################################
-#  Atomic Data
-###################################################################
+###############################################################################
+#                               Atomic Data
+###############################################################################
 
 #Elemental mass numbers embedded in "static" class
 class M:
+    #electron (for use in species access)
+    e = electron_mass/u # electron mass in amu, M.species returns mass in kg
+    
     #Period 1
     H=1.007940 
     He=4.002602 
@@ -220,3 +223,12 @@ class M:
     Uuh=293.000000 
     Uus='?'
     Uuo=294.000000 
+    
+    # Allow for dictionary-like access of element data
+    @classmethod
+    def species(self,name):
+        if name in self.__dict__:
+            return self.__dict__[name]*u
+        else:
+            raise KeyError
+        

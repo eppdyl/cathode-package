@@ -17,17 +17,59 @@ import cathode.constants as cc
 #%%                         Basic Plasma Physics
 ###############################################################################
 
-def debye_length(ne,TeV):
-    return NotImplemented
+def debye_length(ne,TeV,species='e'):
+    """
+    Returns the debye length, sqrt(eps0*k*T/(e^2 ne)) for the species specified.
+    Inputs:
+        Number density (1/m^3)
+        Temperature (eV)
+    Optional Input:
+        species, string specifying standard abbreviation for elemental species
+            - DEFAULTS TO ELECTRON
+    Output:
+        plasma frequency (rad/s)
+    """
+    return np.sqrt((cc.epsilon0*cc.e*TeV)/(cc.e**2*ne))
 
-def plasma_frequency(ne):
-    return NotImplemented
+def plasma_frequency(ne,species='e'):
+    """
+    Returns the plasma frequency, sqrt(e^2 ne/(eps0* m)) for the species specified.
+    Inputs:
+        number density (1/m^3)
+    Optional Input:
+        species, string specifying standard abbreviation for elemental species
+            - DEFAULTS TO ELECTRON
+    Output:
+        plasma frequency (rad/s)
+    """
+    return np.sqrt((cc.e**2)*ne/(cc.epsilon0*cc.M.species(species)))
 
 def thermal_velocity(TeV,species='e'):
-    return NotImplemented
+    """
+    Returns the thermal velocity, sqrt(kB T/m) for the species specified.
+    Inputs:
+        Temperature in eV
+    Optional Input:
+        species, string specifying standard abbreviation for elemental species
+            - DEFAULTS TO ELECTRON
+    Output:
+        thermal velocity in m/s
+    """
+    return np.sqrt((cc.e*TeV)/(cc.M.species(species)))
 
 def mean_velocity(TeV,species='e'):
-    return NotImplemented
+    """
+    Returns the distribution-averaged species velocity assuming a Maxwellian 
+    distribution at a temperature of TeV (in electron volts).
+    Inputs:
+        Temperature in eV
+    Optional Input:
+        species, string specifying standard abbreviation for elemental species
+            - DEFAULTS TO ELECTRON
+    Output:
+        mean velocity in m/s
+    """
+    return np.sqrt((8.0*cc.e*TeV)/(np.pi*cc.M.species(species)))
 
 def electron_ion_collision_frequency():
     return NotImplemented
@@ -56,7 +98,7 @@ def charge_exchange_xsec(TeV,species='Xe'):
     consts={
             'Xe':[87.3,13.6],
             'Xe2+':[45.7,8.9],
-            'Ar':[0,0],
+            'Ar':[0,0], # Data for Argon not found
             'Kr':[80.7,14.7],
             'Kr2+':[44.6,9.8]}
     
@@ -201,7 +243,32 @@ def create_cross_section_spline(filename,xsec_type,chosen=None):
 #%%                       Reaction Rate Integrals
 ###############################################################################
 
-def reaction_rate():
+def reaction_rate(xsec_spline,TeV,Emin,Emax,output_xsec=False):
+    #normalization factor for reaction rate integral
+    normalization = (8.0*np.pi*cc.e**2/np.sqrt(cc.me))/(
+            (2.0*np.pi*cc.e*TeV)**(3/2))
+    
+    #define integrand lambda functions
+    energy_integrand = lambda E: E*xsec_spline(E)*np.exp(-E/TeV)
+    flux_integrand = lambda E: E*np.exp(-E/TeV)
+    
+    #integrate (note that these return the error estimate as the second output)
+    energy_integral = quad(energy_integrand,Emin,Emax,epsabs=1E-30)
+    flux_integral = quad(flux_integrand,0.0,Emax,epsabs=1E-30)
+    
+    #reaction rate
+    K = normalization*energy_integral[0]
+    
+    #Maxwellian-averaged cross section
+    xsec_avg = energy_integral[0]/flux_integral[0]
+    
+    #if specified, output both the cross section and reaction rate
+    if output_xsec:
+        return K,xsec_avg
+    else:
+        return K    
+    
+    
     return NotImplemented
 
 def beam_reaction_rate():
