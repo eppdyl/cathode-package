@@ -272,6 +272,23 @@ def create_cross_section_spline(filename,xsec_type,chosen=None):
 
 @np.vectorize
 def reaction_rate(xsec_spline,TeV,Emin,Emax,output_xsec=False):
+    """
+    Returns the reaction rate for the process with cross section xsec_spline
+    for Maxwellian electrons with temperature TeV.  Emin and Emax specify the 
+    minimum and maximum energy for integration (Emin should be the threshold
+    energy for the process, Emax should be the useful limit of the spline)
+    Inputs:
+        Cross section spline, created by create_cross_section_spline()
+        Electron temperature, eV
+        Minimum energy, eV (threshold for process of interest)
+        Maximum energy, eV (limit of data or maximum extrapolation for spline)
+    Optional Input:
+        output_xsec can be set to true to return a tuple of (reaction rate, cross section)
+            Defaults to FALSE, -> outputs only reaction rate unless specified
+    Outputs:
+        if output_xsec is true, (reaction rate, cross section) (m^3/s, m^2)
+        otherwise, (reaction rate) (m^3/s)
+    """
     #normalization factor for reaction rate integral
     normalization = (8.0*np.pi*cc.e**2.0/np.sqrt(cc.me))/(
             (2.0*np.pi*cc.e*TeV)**(3.0/2.0))
@@ -296,8 +313,23 @@ def reaction_rate(xsec_spline,TeV,Emin,Emax,output_xsec=False):
     else:
         return K    
     
-def beam_reaction_rate():
-    return NotImplemented
+
+
+def beam_reaction_rate(xsec_spline,Ebeam):
+    """
+    Returns the reaction rate for monoenergetic beam electrons and cross section
+    described by xsec_spline.
+    Inputs:
+        Cross section spline created by create_cross_section_spline()
+        Beam energy in eV
+    Output:
+        Reaction rate (m^3/s)
+    """
+    
+    #beam electron velocity
+    v = np.sqrt(cc.e*Ebeam/cc.me)
+    
+    return v*xsec_spline(Ebeam)
             
             
             
