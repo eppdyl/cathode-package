@@ -71,6 +71,26 @@ def mean_velocity(TeV,species='e'):
     """
     return np.sqrt((8.0*cc.e*TeV)/(np.pi*cc.M.species(species)))
 
+def coulomb_log(ne,TeV,collision_type='ei'):
+    """
+    Returns the Coulomb logarithm value as a function of plasma density and 
+    electron temperature.  Collision type can be either electron-ion (default)
+    or electron-electron.
+    Inputs:
+        plasma number density (1/m^3)
+        plasma electron temperature (eV)
+    Optional Inputs:
+        collision type string ('ei' or 'ee')
+    Output:
+        Value of Coulomb Logarithm
+        
+    Ref: NRL Plasma Formulary (values translated from CGS to SI)
+    """
+    if collision_type == 'ei':
+        return (23.0 - 0.5*np.log(1E-6*ne/(TeV**3.0))) 
+    elif collision_type == 'ee':
+        return (23.5 - 0.5*np.log(1E-6*ne/(TeV**(5.0/2.0)))-np.sqrt(1E-5 + (np.log(TeV)-2.0)**2/16.0))
+
 def electron_ion_collision_frequency():
     return NotImplemented
 
@@ -81,6 +101,7 @@ def electron_electron_collision_frequency():
 #%%                             Cross Section Fits
 ###############################################################################
 
+@np.vectorize
 def charge_exchange_xsec(TeV,species='Xe'):
     """
     Returns charge exchange cross section for the specified species in m^2 for 
@@ -94,17 +115,23 @@ def charge_exchange_xsec(TeV,species='Xe'):
         
     Refs: Miller et al. 2002 (Xe)
           Hause et al. 2013 (Kr)
+          Nichols and Witteborn 1966 (Ar,N2)
     """
     consts={
             'Xe':[87.3,13.6],
             'Xe2+':[45.7,8.9],
-            'Ar':[0,0], # Data for Argon not found
+            'Ar':[7.49,0.73],
+            'N2':[6.48,0.24],
             'Kr':[80.7,14.7],
             'Kr2+':[44.6,9.8]}
     
     A,B = consts[species]
     
-    return A*cc.angstrom**2 - B*np.log(TeV)*cc.angstrom**2
+    #special case for Argon and N2 fits:
+    if species == 'Ar' or species == 'N2':
+        return (A*cc.angstrom - B*cc.angstrom*np.log(TeV))**2
+    else:
+        return (A*cc.angstrom**2 - B*np.log(TeV)*cc.angstrom**2)
     
 
 def goebel_electron_neutral_xsec(TeV):
@@ -115,7 +142,7 @@ def goebel_electron_neutral_xsec(TeV):
     Inputs: Electron temperature in eV
     Output: cross section in m^2
     """
-    return (6.6E-19)*(((TeV/4)-0.1)/(1+(TeV/4)**(1.6)))
+    return (6.6E-19)*(((TeV/4.0)-0.1)/(1.0+(TeV/4.0)**(1.6)))
 
 def goebel_ionization_xsec(TeV):
     """
@@ -163,7 +190,7 @@ def create_cross_section_spline(filename,xsec_type,chosen=None):
     
     Inputs: 
             filename of lxcat data
-            cross-section type (e.g. 'IONIZATION')
+            cross-section type (e.g. any of these: 'IONIZATION','Excitation','elastic')
     Optional Inputs:
             chosen (number corresponding to selected cross section or 'ALL')
     Output: 
@@ -243,18 +270,19 @@ def create_cross_section_spline(filename,xsec_type,chosen=None):
 #%%                       Reaction Rate Integrals
 ###############################################################################
 
+@np.vectorize
 def reaction_rate(xsec_spline,TeV,Emin,Emax,output_xsec=False):
     #normalization factor for reaction rate integral
-    normalization = (8.0*np.pi*cc.e**2/np.sqrt(cc.me))/(
-            (2.0*np.pi*cc.e*TeV)**(3/2))
+    normalization = (8.0*np.pi*cc.e**2.0/np.sqrt(cc.me))/(
+            (2.0*np.pi*cc.e*TeV)**(3.0/2.0))
     
     #define integrand lambda functions
     energy_integrand = lambda E: E*xsec_spline(E)*np.exp(-E/TeV)
     flux_integrand = lambda E: E*np.exp(-E/TeV)
     
     #integrate (note that these return the error estimate as the second output)
-    energy_integral = quad(energy_integrand,Emin,Emax,epsabs=1E-30)
-    flux_integral = quad(flux_integrand,0.0,Emax,epsabs=1E-30)
+    energy_integral = quad(energy_integrand,Emin,Emax,epsabs=1.0E-30)
+    flux_integral = quad(flux_integrand,0.0,Emax,epsabs=1.0E-30)
     
     #reaction rate
     K = normalization*energy_integral[0]
@@ -268,9 +296,6 @@ def reaction_rate(xsec_spline,TeV,Emin,Emax,output_xsec=False):
     else:
         return K    
     
-    
-    return NotImplemented
-
 def beam_reaction_rate():
     return NotImplemented
             
