@@ -14,7 +14,7 @@ from scipy.integrate import quad
 import cathode.constants as cc
 
 ###############################################################################
-#%%                         Basic Plasma Physics
+#                         Basic Plasma Physics
 ###############################################################################
 
 def debye_length(ne,TeV,species='e'):
@@ -71,6 +71,7 @@ def mean_velocity(TeV,species='e'):
     """
     return np.sqrt((8.0*cc.e*TeV)/(np.pi*cc.M.species(species)))
 
+@np.vectorize
 def coulomb_log(ne,TeV,collision_type='ei'):
     """
     Returns the Coulomb logarithm value as a function of plasma density and 
@@ -98,7 +99,7 @@ def electron_electron_collision_frequency():
     return NotImplemented
 
 ###############################################################################
-#%%                             Cross Section Fits
+#                             Cross Section Fits
 ###############################################################################
 
 @np.vectorize
@@ -156,7 +157,7 @@ def goebel_ionization_xsec(TeV):
 
 
 ###############################################################################
-#%%                           Cross Section Import
+#                           Cross Section Import
 ###############################################################################
 
 def _fetch_data(lines,match_index):
@@ -267,7 +268,7 @@ def create_cross_section_spline(filename,xsec_type,chosen=None):
             
             
 ###############################################################################
-#%%                       Reaction Rate Integrals
+#                     Reaction Rate Integrals
 ###############################################################################
 
 @np.vectorize
@@ -314,7 +315,7 @@ def reaction_rate(xsec_spline,TeV,Emin,Emax,output_xsec=False):
         return K    
     
 
-
+@np.vectorize
 def beam_reaction_rate(xsec_spline,Ebeam):
     """
     Returns the reaction rate for monoenergetic beam electrons and cross section
