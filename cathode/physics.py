@@ -328,7 +328,7 @@ def beam_reaction_rate(xsec_spline,Ebeam):
     """
     
     #beam electron velocity
-    v = np.sqrt(cc.e*Ebeam/cc.me)
+    v = np.sqrt(2.0*cc.e*Ebeam/cc.me)
     
     return v*xsec_spline(Ebeam)
             
