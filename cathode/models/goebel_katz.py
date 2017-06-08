@@ -9,7 +9,7 @@ Fundamentals of Electric Propulsion: Hall and Ion Thrusters (2008)
 import cathode.constants as cc
 import cathode.physics as cp
 import numpy as np
-from scipy.optimize import fsolve,root
+from scipy.optimize import fsolve #,root
 
 @np.vectorize
 def ambipolar_diffusion_model(cathode_radius,neutral_density,TiV,species='Xe'):
@@ -31,10 +31,11 @@ def ambipolar_diffusion_model(cathode_radius,neutral_density,TiV,species='Xe'):
     #NOTE: THIS SECTION WILL CURRENTLY ONLY WORK FOR XENON!!
     lhs = lambda TeV: ((cathode_radius/cc.besselJ01)**2*(neutral_density*
                        cp.goebel_ionization_xsec(TeV)*
-                       np.sqrt(8*cc.e*TeV/(np.pi*cc.me))))
+                       cp.mean_velocity(TeV,'e')))
     
     rhs = lambda TeV: ((cc.e/cc.M.species(species))*(TiV+TeV)/
-                       (neutral_density*cp.charge_exchange_xsec(TiV,species)*
+                       (neutral_density*
+                        cp.charge_exchange_xsec(TiV,species)*
                         np.sqrt(cc.e*TiV/cc.M.species(species))))
     
     goal = lambda x: lhs(x) - rhs(x)
@@ -42,3 +43,17 @@ def ambipolar_diffusion_model(cathode_radius,neutral_density,TiV,species='Xe'):
     electron_temperature = fsolve(goal,x0=2.0)
     
     return electron_temperature
+
+@np.vectorize
+def electron_ion_collision_frequency(ne,TeV):
+    return 2.9E-12 * ne * TeV**(-3/2) * cp.coulomb_log(ne,TeV,'ei')
+
+@np.vectorize
+def electron_neutral_collision_frequency(neutral_density,TeV):
+    return cp.goebel_electron_neutral_xsec(TeV)*neutral_density*cp.mean_velocity(TeV,'e')
+
+@np.vectorize
+def resistivity(ne,neutral_density,TeV):
+    return (electron_ion_collision_frequency(ne,TeV)+
+            electron_neutral_collision_frequency(neutral_density,TeV))/(
+            cc.epsilon0*cp.plasma_frequency(ne,'e')**2)
