@@ -57,3 +57,16 @@ def resistivity(ne,neutral_density,TeV):
     return (electron_ion_collision_frequency(ne,TeV)+
             electron_neutral_collision_frequency(neutral_density,TeV))/(
             cc.epsilon0*cp.plasma_frequency(ne,'e')**2)
+    
+    
+def thermionic_current_density(Tw,phi_wf):
+    return NotImplemented
+
+def ion_current_density(ne,neutral_density,TeV):
+    return NotImplemented
+
+def plasma_resistance(length,diameter,ne,neutral_density,TeV):
+    return NotImplemented
+
+def random_electron_current_density(ne,TeV,phi_s):
+    return NotImplemented

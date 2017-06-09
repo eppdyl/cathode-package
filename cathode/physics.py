@@ -49,6 +49,7 @@ def thermal_velocity(TeV,species='e'):
     Returns the thermal velocity, sqrt(kB T/m) for the species specified.
     Inputs:
         Temperature in eV
+        
     Optional Input:
         species, string specifying standard abbreviation for elemental species
             - DEFAULTS TO ELECTRON
@@ -132,7 +133,7 @@ def charge_exchange_xsec(TeV,species='Xe'):
     if species == 'Ar' or species == 'N2':
         return (A*cc.angstrom - B*cc.angstrom*np.log(TeV))**2
     else:
-        return (A*cc.angstrom**2 - B*np.log(TeV)*cc.angstrom**2)
+        return (A - B*np.log(TeV))*cc.angstrom**2
     
 
 def goebel_electron_neutral_xsec(TeV):
@@ -200,7 +201,7 @@ def create_cross_section_spline(filename,xsec_type,chosen=None):
     with open(filename,'r') as f:
         lines = f.readlines()
         
-    if xsec_type.upper() not in ['EXCITATION','IONIZATION','ELASTIC']:
+    if xsec_type.upper() not in ['EXCITATION','IONIZATION','ELASTIC','EFFECTIVE']:
         print('Must select a valid cross section type.')
         return None
         
@@ -299,8 +300,8 @@ def reaction_rate(xsec_spline,TeV,Emin,Emax,output_xsec=False):
     flux_integrand = lambda E: E*np.exp(-E/TeV)
     
     #integrate (note that these return the error estimate as the second output)
-    energy_integral = quad(energy_integrand,Emin,Emax,epsabs=1.0E-30)
-    flux_integral = quad(flux_integrand,0.0,Emax,epsabs=1.0E-30)
+    energy_integral = quad(energy_integrand,Emin,Emax,epsabs=1.0E-30,limit=1000)
+    flux_integral = quad(flux_integrand,0.0,Emax,epsabs=1.0E-30,limit=1000)
     
     #reaction rate
     K = normalization*energy_integral[0]

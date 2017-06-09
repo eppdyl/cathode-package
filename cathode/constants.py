@@ -12,7 +12,7 @@ Static class M is used to store elemental atomic masses in amu.
 #define constants:
 from scipy.constants import (speed_of_light,Boltzmann,electron_volt,
                              elementary_charge,electron_mass,torr,
-                             atomic_mass,epsilon_0,gas_constant)
+                             atomic_mass,epsilon_0,gas_constant,h,pi)
 
 ###############################################################################
 #       Physical constants/Energy conversions/Mass conversions
@@ -26,6 +26,9 @@ mm = 1.0E-3
 
 #angstrom (angstrom to m)
 angstrom = 1.0E-10
+
+#Bohr radius
+a0 = 0.52917721067*angstrom
 
 #electron volt (eV to J)
 eV = electron_volt
@@ -53,6 +56,9 @@ kB_eV = kB/eV
 
 #Gas constant (J/(mol*K))
 R0 = gas_constant 
+
+#Richardson-Dushman Constant (A/(m^2-K^2))
+A0 = 4.0*pi*kB**2*e/h**3
 
 #Unified Atomic mass Unit (kg)
 u = atomic_mass 
