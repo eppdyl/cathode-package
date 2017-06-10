@@ -161,6 +161,43 @@ def goebel_ionization_xsec(TeV):
 #                           Cross Section Import
 ###############################################################################
 
+class CrossSection:
+    """
+    Callable cross section spline object.  Constructor stores the minimum and
+    maximum energies for the spline data, the scaling to multiply by (in case 
+    the data is scaled prior to fitting), and the spline fit object itself.
+    CrossSection objects can be added to one another to produce lumped cross 
+    sections and can be called using function syntax at an energy in eV.
+    """
+    
+    def __init__(self,Emin,Emax,scaling,spline):
+        #create empty arrays for each parameter
+        self.Emins = np.array([])
+        self.Emaxs = np.array([])
+        self.scalings = np.array([])
+        self.splines = np.array([])
+        
+        self.Emins = np.append(self.Emins,Emin)
+        self.Emaxs = np.append(self.Emaxs,Emax)
+        self.scalings = np.append(self.scalings,scaling)
+        self.splines = np.append(self.splines,spline)
+        
+    def __add__(self,other):
+        if type(other) == CrossSection:
+            return CrossSection(np.append(self.Emins,other.Emins),
+                                np.append(self.Emaxs,other.Emaxs),
+                                np.append(self.scalings,other.scalings),
+                                np.append(self.splines,other.splines))
+        else:
+            print("Error: cannot add CrossSection to different data type")
+            return None
+
+    def __call__(self,value):
+        return np.sum((1.0*(value>=Emin))*(1.0*(value<=Emax))*scaling*splev(value,self.splines[3*i:3*i+3])
+                      for Emin,Emax,scaling,i in zip(
+                              self.Emins,self.Emaxs,self.scalings,range(len(self.splines)//3)))
+
+
 def _fetch_data(lines,match_index):
     """Private helper function for cross section creation"""
     separator = re.compile('-{5,}\n')
@@ -173,6 +210,8 @@ def _fetch_data(lines,match_index):
     data = re.split(separator,bulk)[1]        
     data = np.loadtxt(re.split('\n',data))
     print('\tImported level: '+str(data[0,0])+' eV')
+    Emin = data[0,0]
+    Emax = data[-1,0]
     
     #rescale and spline data
     _scaling = np.max(data[:,1])
@@ -180,7 +219,8 @@ def _fetch_data(lines,match_index):
     
     _spline = splrep(data[:,0],data[:,1])
     
-    return (lambda x: _scaling*splev(x,_spline))
+    return CrossSection(Emin,Emax,_scaling,_spline)
+
 
 def create_cross_section_spline(filename,xsec_type,chosen=None):
     """
@@ -215,7 +255,7 @@ def create_cross_section_spline(filename,xsec_type,chosen=None):
             match_num += 1
             print(str(match_num)+'.')
             print(lines[index+4].strip())
-            print(lines[index+6].strip()+'\n')
+            print(lines[index+6].strip() + '\n')
             matches[match_num]=index
     
     #If no matches, print warning and return None      
@@ -249,7 +289,7 @@ def create_cross_section_spline(filename,xsec_type,chosen=None):
                         raise ValueError
                         
                     failure = False
-                    print("Importing cross section No."+str(chosen))
+                    print("Importing cross section No." + str(chosen))
                     
                 except ValueError:
                     chosen = None
@@ -264,8 +304,14 @@ def create_cross_section_spline(filename,xsec_type,chosen=None):
             splines={}
             for m in matches.keys():
                 splines[m]=_fetch_data(lines,matches[m])
+                #create empty cross section object
+                out = CrossSection([],[],[],[])
+                
+                #sum over all retrieved cross sections
+                for sp in splines.values():
+                    out += sp
             
-            return (lambda x: np.sum(sp(x) for sp in splines.values()))
+            return out
             
             
 ###############################################################################
@@ -273,7 +319,7 @@ def create_cross_section_spline(filename,xsec_type,chosen=None):
 ###############################################################################
 
 @np.vectorize
-def reaction_rate(xsec_spline,TeV,Emin,Emax,output_xsec=False):
+def reaction_rate(xsec_spline,TeV,Emin=None,Emax=None,output_xsec=False):
     """
     Returns the reaction rate for the process with cross section xsec_spline
     for Maxwellian electrons with temperature TeV.  Emin and Emax specify the 
@@ -291,6 +337,15 @@ def reaction_rate(xsec_spline,TeV,Emin,Emax,output_xsec=False):
         if output_xsec is true, (reaction rate, cross section) (m^3/s, m^2)
         otherwise, (reaction rate) (m^3/s)
     """
+    
+    #check whether integration bounds have been specified, if not, 
+    #use minimum and maximum bounds for spline data (flux integral should always be
+    #evaluated from 0 eV)
+    if not Emin:
+        Emin = np.min(xsec_spline.Emins)
+    if not Emax:
+        Emax = np.max(xsec_spline.Emaxs)
+    
     #normalization factor for reaction rate integral
     normalization = (8.0*np.pi*cc.e**2.0/np.sqrt(cc.me))/(
             (2.0*np.pi*cc.e*TeV)**(3.0/2.0))

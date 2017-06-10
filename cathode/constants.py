@@ -55,7 +55,7 @@ kB = Boltzmann
 kB_eV = kB/eV
 
 #Gas constant (J/(mol*K))
-R0 = gas_constant 
+R0 = gas_constant
 
 #Richardson-Dushman Constant (A/(m^2-K^2))
 A0 = 4.0*pi*kB**2*e/h**3
