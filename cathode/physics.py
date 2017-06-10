@@ -72,6 +72,19 @@ def mean_velocity(TeV,species='e'):
     """
     return np.sqrt((8.0*cc.e*TeV)/(np.pi*cc.M.species(species)))
 
+def bohm_velocity(TeV,species='Xe'):
+    """
+    Returns the Bohm velocity (ion acoustic velocity) for a given electron
+    temperature and ion species.
+    Input:
+        electron temperature in eV
+    Optional Input:
+        species string, defaults to Xe
+    Output:
+        Bohm velocity, m/s
+    """
+    return np.sqrt(cc.e*TeV/cc.M.species(species))
+
 @np.vectorize
 def coulomb_log(ne,TeV,collision_type='ei'):
     """

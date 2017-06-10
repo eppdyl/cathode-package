@@ -29,7 +29,7 @@ def ambipolar_diffusion_model(cathode_radius,neutral_density,TiV,species='Xe'):
         electron temperature, eV
     """
     #NOTE: THIS SECTION WILL CURRENTLY ONLY WORK FOR XENON!!
-    lhs = lambda TeV: ((cathode_radius/cc.besselJ01)**2*(neutral_density*
+    lhs = lambda TeV: ((cathode_radius/cc.BesselJ01)**2*(neutral_density*
                        cp.goebel_ionization_xsec(TeV)*
                        cp.mean_velocity(TeV,'e')))
     
@@ -59,14 +59,14 @@ def resistivity(ne,neutral_density,TeV):
             cc.epsilon0*cp.plasma_frequency(ne,'e')**2)
     
     
-def thermionic_current_density(Tw,phi_wf):
-    return NotImplemented
+def thermionic_current_density(Tw,phi_wf,D=cc.A0):
+    return D*Tw**2*np.exp(-cc.e*phi_wf/(cc.kB*Tw))
 
-def ion_current_density(ne,neutral_density,TeV):
-    return NotImplemented
+def ion_current_density(ne,TeV,species='Xe'):
+    return cc.e*ne*cp.bohm_velocity(TeV,species)
 
 def plasma_resistance(length,diameter,ne,neutral_density,TeV):
-    return NotImplemented
+    return length*resistivity(ne,neutral_density,TeV)/(cc.pi*(diameter/2)**2)
 
 def random_electron_current_density(ne,TeV,phi_s):
-    return NotImplemented
+    return cc.e*ne*cp.mean_velocity(TeV,'e')*np.exp(-phi_s/TeV)/4.0
