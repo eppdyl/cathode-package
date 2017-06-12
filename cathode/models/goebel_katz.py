@@ -8,6 +8,7 @@ Fundamentals of Electric Propulsion: Hall and Ion Thrusters (2008)
 """
 import cathode.constants as cc
 import cathode.physics as cp
+import cathode.models.flow as flow
 import numpy as np
 from scipy.optimize import fsolve #,root
 
@@ -46,20 +47,62 @@ def ambipolar_diffusion_model(cathode_radius,neutral_density,TiV,species='Xe'):
 
 @np.vectorize
 def electron_ion_collision_frequency(ne,TeV):
+    """
+    Returns the plasma electron-ion collision frequency as expressed in the 
+    NRL Plasma Formulary.
+    Inputs:
+        electron number density, #/m^3
+        electron temperature, eV
+    Output:
+        electron-ion collision frequency, 1/s
+    """
     return 2.9E-12 * ne * TeV**(-3/2) * cp.coulomb_log(ne,TeV,'ei')
 
 @np.vectorize
-def electron_neutral_collision_frequency(neutral_density,TeV):
+def electron_neutral_collision_frequency(neutral_density,TeV,species='Xe'):
+    """
+    Returns the electron-neutral collision frequency using the fits given 
+    in Goebel's textbook.
+    Inputs:
+        neutral number density, #/m^3
+        electron temperature, eV
+    Optional Input:
+        species string, defaults to Xenon (only works for Xenon right now)
+    Output:
+        electron-neutral collision frequency, 1/s
+    """
     return cp.goebel_electron_neutral_xsec(TeV)*neutral_density*cp.mean_velocity(TeV,'e')
 
 @np.vectorize
 def resistivity(ne,neutral_density,TeV):
+    """
+    Returns the plasma resistivity, \eta, as a function of plasma density,
+    neutral density, and electron temperature.
+    Inputs:
+        plasma density, #/m^3
+        neutral gas density, #/m^3
+        electron temperature, eV
+    Output:
+        plasma resistivity, Ohm-m
+    """
     return (electron_ion_collision_frequency(ne,TeV)+
             electron_neutral_collision_frequency(neutral_density,TeV))/(
             cc.epsilon0*cp.plasma_frequency(ne,'e')**2)
     
     
 def thermionic_current_density(Tw,phi_wf,D=cc.A0):
+    """
+    Returns the thermionic electron emission current density as defined by the
+    Richardson-Dushman equation with the option of incorporating an experimentally
+    determined temperature coefficient through the use of D.
+    Inputs:
+        wall temperature, K
+        work function, V
+    Optional Input:
+        D, experimental coefficient A/(m-K)^2 defaults to the universal constant A0
+    Output:
+        current density in A/m^2
+    """
     return D*Tw**2*np.exp(-cc.e*phi_wf/(cc.kB*Tw))
 
 def ion_current_density(ne,TeV,species='Xe'):
@@ -71,12 +114,12 @@ def plasma_resistance(length,diameter,ne,neutral_density,TeV):
 def random_electron_current_density(ne,TeV,phi_s):
     return cc.e*ne*cp.mean_velocity(TeV,'e')*np.exp(-phi_s/TeV)/4.0
 
-def heat_loss(Tw,method='fixed'):
+def heat_loss(Tw=None,method='fixed'):
     if (method == 'fixed'):
         return 13
     
 def insert_plasma_power_balance(ne,Tw,phi_s,Id,TeV,D,phi_wf,E_iz,length,diameter,neutral_density): #may want to add species later
-    A_emit = cc.pi*length*diameter**2/4.0
+    A_emit = cc.pi*length*diameter
     
     lhs = (thermionic_current_density(Tw,phi_wf,D)*A_emit*phi_s + 
            plasma_resistance(length,diameter,ne,neutral_density,TeV)*Id**2)
@@ -87,7 +130,7 @@ def insert_plasma_power_balance(ne,Tw,phi_s,Id,TeV,D,phi_wf,E_iz,length,diameter
     return (lhs - rhs)
 
 def current_balance(ne,Tw,phi_s,Id,TeV,D,phi_wf,E_iz,length,diameter,neutral_density):
-    A_emit = cc.pi*length*diameter**2/4.0
+    A_emit = cc.pi*length*diameter
     
     lhs = Id
     
@@ -98,7 +141,7 @@ def current_balance(ne,Tw,phi_s,Id,TeV,D,phi_wf,E_iz,length,diameter,neutral_den
     return (lhs - rhs)
 
 def emitter_power_balance(ne,Tw,phi_s,Id,TeV,D,phi_wf,E_iz,length,diameter,neutral_density):
-    A_emit = cc.pi*length*diameter**2/4.0
+    A_emit = cc.pi*length*diameter
     
     lhs = heat_loss(Tw) + thermionic_current_density(Tw,phi_wf,D)*phi_wf*A_emit
     
@@ -125,11 +168,58 @@ def zerofun(x,args):
     
     return goal
 
-def approx_solve():
+def sheath_voltage(Id,TeV,phi_wf,length,diameter,ne,neutral_density):
+    return ((heat_loss()/Id) + 2.5*TeV + phi_wf - Id*plasma_resistance(length,diameter,ne,neutral_density,TeV))
+
+def average_plasma_density_model(Id,TeV,phi_wf,length,diameter,ne,neutral_density,plasma_potential,E_iz):
+    
+    phi_s = sheath_voltage(Id,TeV,phi_wf,length,diameter,ne,neutral_density)
+    Rp = plasma_resistance(length,diameter,ne,neutral_density,TeV)
+    f_n = np.exp(-(plasma_potential-phi_s)/TeV) #edge-to-average ratio as defined by Goebel
+    
+    A_emit = length*cc.pi*diameter
+    V_emit = length*cc.pi*diameter**2/4.0
+    
+    ne_bar = (Rp*Id**2 - 2.5*TeV*Id + phi_s*Id)/(
+            cc.e*f_n*TeV*np.sqrt(cc.e*TeV/(2*cc.pi*cc.me))*A_emit*np.exp(-phi_s/TeV)+
+            cc.e*neutral_density*V_emit*(E_iz+phi_s)*cp.goebel_ionization_xsec(TeV)*
+            cp.mean_velocity(TeV,'e'))
+    
+    return ne_bar,phi_s
+
+def approx_solve(Id,orifice_length,orifice_diameter,
+                 insert_length,insert_diameter,flow_rate_sccm,Tgas,P_outlet,
+                 E_iz,phi_wf,plasma_potential):
+    
+    #use the orifice dimensions and the flow rate to get P_ins
+    P_insert_downstream = flow.poiseuille_flow(orifice_length,orifice_diameter,flow_rate_sccm,Tgas,P_outlet)
+    P_insert_upstream = flow.poiseuille_flow(insert_length,insert_diameter,flow_rate_sccm,Tgas,P_insert_downstream)
+    
+    P_insert = (P_insert_downstream+P_insert_upstream)/2.0
+    
+    print('Pressure: {} Torr (insert upstream)\n\t{} Torr (insert downstream)\n\t{} Torr (average)'.format(
+            P_insert_upstream,P_insert_downstream,P_insert))
+    
+    neutral_density = P_insert*cc.Torr2eVm3/(Tgas*cc.Kelvin2eV)
+    
+    TeV = ambipolar_diffusion_model(insert_diameter/2.0,neutral_density,Tgas*cc.Kelvin2eV)
+    print('Insert Electron Temperature: {} eV'.format(TeV))
     
     #first guess value for ne
     ne_0 = 1.5E21
     
-    #resisitivity at initial step
-    Rp = plasma_resistance(length,diameter,ne_0,neutral_density,TeV)
-
+    #sheath voltage at initial step
+    phi_s = sheath_voltage(Id,TeV,phi_wf,insert_length,insert_diameter,ne_0,neutral_density)
+    delta = 1.0
+    ne_bar = ne_0
+    
+    while(delta>=0.001):
+        phi_s_old = phi_s
+        ne_old = ne_bar
+        ne_bar,phi_s = average_plasma_density_model(Id,TeV,phi_wf,insert_length,insert_diameter,
+                                                    ne_old,neutral_density,plasma_potential,E_iz)
+        delta = np.max(np.abs([1-phi_s/phi_s_old,1-ne_bar/ne_old]))
+        print(delta,ne_bar,phi_s)
+        
+    print('Insert Plasma Density: {} /m^3'.format(ne_bar))
+    print('Insert Sheath Voltage: {} V'.format(phi_s))
