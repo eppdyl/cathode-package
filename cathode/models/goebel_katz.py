@@ -70,3 +70,66 @@ def plasma_resistance(length,diameter,ne,neutral_density,TeV):
 
 def random_electron_current_density(ne,TeV,phi_s):
     return cc.e*ne*cp.mean_velocity(TeV,'e')*np.exp(-phi_s/TeV)/4.0
+
+def heat_loss(Tw,method='fixed'):
+    if (method == 'fixed'):
+        return 13
+    
+def insert_plasma_power_balance(ne,Tw,phi_s,Id,TeV,D,phi_wf,E_iz,length,diameter,neutral_density): #may want to add species later
+    A_emit = cc.pi*length*diameter**2/4.0
+    
+    lhs = (thermionic_current_density(Tw,phi_wf,D)*A_emit*phi_s + 
+           plasma_resistance(length,diameter,ne,neutral_density,TeV)*Id**2)
+    
+    rhs = (ion_current_density(ne,TeV)*A_emit*E_iz + 2.5*TeV*Id + 
+           (2.0*TeV + phi_s)*random_electron_current_density(ne,TeV,phi_s)*A_emit)
+
+    return (lhs - rhs)
+
+def current_balance(ne,Tw,phi_s,Id,TeV,D,phi_wf,E_iz,length,diameter,neutral_density):
+    A_emit = cc.pi*length*diameter**2/4.0
+    
+    lhs = Id
+    
+    rhs = (thermionic_current_density(Tw,phi_wf,D)*A_emit + 
+           ion_current_density(ne,TeV)*A_emit - 
+           random_electron_current_density(ne,TeV,phi_s)*A_emit)
+    
+    return (lhs - rhs)
+
+def emitter_power_balance(ne,Tw,phi_s,Id,TeV,D,phi_wf,E_iz,length,diameter,neutral_density):
+    A_emit = cc.pi*length*diameter**2/4.0
+    
+    lhs = heat_loss(Tw) + thermionic_current_density(Tw,phi_wf,D)*phi_wf*A_emit
+    
+    rhs = (ion_current_density(ne,TeV)*(E_iz + phi_s + 0.5*TeV - phi_wf)*A_emit +
+           (2.0*TeV + phi_wf)*random_electron_current_density(ne,TeV,phi_s)*A_emit)
+    
+    return (lhs-rhs)
+    
+def zerofun(x,args):
+    ne=x[0]*1E21
+    Tw=x[1]*1E3
+    phi_s=x[2]
+    
+    #unpack arguments
+    Id,TeV,D,phi_wf,E_iz,length,diameter,neutral_density = args
+    
+    goal=np.zeros(3)
+    goal[0]=insert_plasma_power_balance(ne,Tw,phi_s,Id,TeV,D,phi_wf,E_iz,length,diameter,neutral_density)/10.0
+    goal[1]=current_balance(ne,Tw,phi_s,Id,TeV,D,phi_wf,E_iz,length,diameter,neutral_density)/10.0
+    goal[2]=emitter_power_balance(ne,Tw,phi_s,Id,TeV,D,phi_wf,E_iz,length,diameter,neutral_density)/10.0
+    
+    print('GOAL FUN:',goal)
+    print('ARGS:',x)
+    
+    return goal
+
+def approx_solve():
+    
+    #first guess value for ne
+    ne_0 = 1.5E21
+    
+    #resisitivity at initial step
+    Rp = plasma_resistance(length,diameter,ne_0,neutral_density,TeV)
+

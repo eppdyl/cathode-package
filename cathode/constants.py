@@ -58,7 +58,7 @@ kB_eV = kB/eV
 R0 = gas_constant
 
 #Richardson-Dushman Constant (A/(m^2-K^2))
-A0 = 4.0*pi*kB**2*e/h**3
+A0 = 4.0*me*pi*kB**2*e/h**3
 
 #Unified Atomic mass Unit (kg)
 u = atomic_mass 
