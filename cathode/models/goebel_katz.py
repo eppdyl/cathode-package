@@ -255,23 +255,16 @@ def approx_solve(Id,orifice_length,orifice_diameter,
                                             Tgas*cc.Kelvin2eV)[0]
     print('Electron Temperature:\t\t{:.3f} eV'.format(TeV_orifice))
     
-    delta = 1.0
-    ne_bar_orifice = ne_bar*10
-    
-    while(delta>=solver_tol):
-        ne_old = np.abs(ne_bar_orifice)
-        ne_bar_orifice = orifice_plasma_density_model(Id,TeV_orifice,TeV,orifice_length,
-                                                      orifice_diameter,ne_old,
+    solve_fun = lambda n: n - orifice_plasma_density_model(Id,TeV_orifice,TeV,orifice_length,
+                                                      orifice_diameter,n,
                                                       orifice_neutral_density,E_iz)
-        delta = np.abs(1-ne_bar_orifice/ne_old)
-        if solver_out:
-            print(delta,ne_bar_orifice)
+    ne_bar_orifice = fsolve(solve_fun,1E19)[0]
     
     print('Plasma Density:\t\t\t{:.3E} /m^3'.format(ne_bar_orifice))
     print('Peak Density:\t\t\t{:.3E} /m^3'.format(ne_bar_orifice/avg_to_peak))
     
 
-
+    return P_insert,TeV,ne_bar,phi_s,P_orifice,TeV_orifice,ne_bar_orifice
 
 
 
