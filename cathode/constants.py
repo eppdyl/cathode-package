@@ -13,6 +13,7 @@ Static class M is used to store elemental atomic masses in amu.
 from scipy.constants import (speed_of_light,Boltzmann,electron_volt,
                              elementary_charge,electron_mass,torr,
                              atomic_mass,epsilon_0,gas_constant,h,pi)
+from scipy.special import jn_zeros
 
 ###############################################################################
 #       Physical constants/Energy conversions/Mass conversions
@@ -90,7 +91,7 @@ sccm2eqA = (e*760.0*Torr2eVm3*cm**3/60.0)/(273.15*Kelvin2eV)
 #                                   Math
 ###############################################################################
 
-BesselJ01 = 2.404825557695772768621631879326454643124244909145967135706
+BesselJ01 = jn_zeros(0,1)[0]
 
 
 ###############################################################################

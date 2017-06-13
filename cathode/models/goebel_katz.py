@@ -11,6 +11,7 @@ import cathode.physics as cp
 import cathode.models.flow as flow
 import numpy as np
 from scipy.optimize import fsolve #,root
+from scipy.special import jn 
 
 @np.vectorize
 def ambipolar_diffusion_model(cathode_radius,neutral_density,TiV,species='Xe'):
@@ -109,7 +110,7 @@ def ion_current_density(ne,TeV,species='Xe'):
     return cc.e*ne*cp.bohm_velocity(TeV,species)
 
 def plasma_resistance(length,diameter,ne,neutral_density,TeV):
-    return length*resistivity(ne,neutral_density,TeV)/(cc.pi*(diameter/2)**2)
+    return length*resistivity(ne,neutral_density,TeV)/(cc.pi*(diameter/2.0)**2)
 
 def random_electron_current_density(ne,TeV,phi_s):
     return cc.e*ne*cp.mean_velocity(TeV,'e')*np.exp(-phi_s/TeV)/4.0
@@ -187,39 +188,96 @@ def average_plasma_density_model(Id,TeV,phi_wf,length,diameter,ne,neutral_densit
     
     return ne_bar,phi_s
 
+def orifice_plasma_density_model(Id,TeV,TeV_insert,length,diameter,ne,neutral_density,E_iz):
+    
+    Rp = plasma_resistance(length,diameter,ne,neutral_density,TeV)
+    #print(Rp)
+    V_ori = cc.pi*diameter**2*length/4.0
+    #print(Id**2*Rp)
+    #print(2.5*(TeV-TeV_insert)*Id)
+    
+    return ((Id**2*Rp - 2.5*Id*(TeV-TeV_insert))/(cc.e*neutral_density*
+           cp.goebel_ionization_xsec(TeV)*cp.mean_velocity(TeV,'e')*E_iz*V_ori))
+    
+
 def approx_solve(Id,orifice_length,orifice_diameter,
                  insert_length,insert_diameter,flow_rate_sccm,Tgas,P_outlet,
-                 E_iz,phi_wf,plasma_potential):
+                 E_iz,phi_wf,plasma_potential,solver_tol = 0.001,solver_out = False):
     
+    print('-------------------INSERT-----------------------')
     #use the orifice dimensions and the flow rate to get P_ins
     P_insert_downstream = flow.poiseuille_flow(orifice_length,orifice_diameter,flow_rate_sccm,Tgas,P_outlet)
     P_insert_upstream = flow.poiseuille_flow(insert_length,insert_diameter,flow_rate_sccm,Tgas,P_insert_downstream)
     
     P_insert = (P_insert_downstream+P_insert_upstream)/2.0
     
-    print('Pressure: {} Torr (insert upstream)\n\t{} Torr (insert downstream)\n\t{} Torr (average)'.format(
+    print('Pressure:\t\t\t{:.3f} Torr (upstream)\n\t\t\t\t{:.3f} Torr (downstream)\n\t\t\t\t{:.3f} Torr (average)'.format(
             P_insert_upstream,P_insert_downstream,P_insert))
     
     neutral_density = P_insert*cc.Torr2eVm3/(Tgas*cc.Kelvin2eV)
     
-    TeV = ambipolar_diffusion_model(insert_diameter/2.0,neutral_density,Tgas*cc.Kelvin2eV)
-    print('Insert Electron Temperature: {} eV'.format(TeV))
+    TeV = ambipolar_diffusion_model(insert_diameter/2.0,neutral_density,Tgas*cc.Kelvin2eV)[0]
+    print('Electron Temperature:\t\t{:.3f} eV'.format(TeV))
     
     #first guess value for ne
-    ne_0 = 1.5E21
-    
     #sheath voltage at initial step
-    phi_s = sheath_voltage(Id,TeV,phi_wf,insert_length,insert_diameter,ne_0,neutral_density)
+    ne_bar = 1.5E21
+    phi_s = sheath_voltage(Id,TeV,phi_wf,insert_length,insert_diameter,ne_bar,neutral_density)
     delta = 1.0
-    ne_bar = ne_0
     
-    while(delta>=0.001):
+    while(delta>=solver_tol):
         phi_s_old = phi_s
         ne_old = ne_bar
         ne_bar,phi_s = average_plasma_density_model(Id,TeV,phi_wf,insert_length,insert_diameter,
                                                     ne_old,neutral_density,plasma_potential,E_iz)
         delta = np.max(np.abs([1-phi_s/phi_s_old,1-ne_bar/ne_old]))
-        print(delta,ne_bar,phi_s)
+        if solver_out:
+            print(delta,ne_bar,phi_s)
         
-    print('Insert Plasma Density: {} /m^3'.format(ne_bar))
-    print('Insert Sheath Voltage: {} V'.format(phi_s))
+    avg_to_peak = 2*jn(1,cc.BesselJ01)/cc.BesselJ01
+    
+    print('Plasma Density:\t\t\t{:.3E} /m^3'.format(ne_bar))
+    print('Peak Density:\t\t\t{:.3E} /m^3'.format(ne_bar/avg_to_peak))
+    print('Sheath Voltage:\t\t\t{:.3f} V'.format(phi_s))
+    
+    P_orifice_downstream = P_outlet
+    P_orifice_upstream = P_insert_downstream
+    
+    P_orifice = (P_orifice_upstream+P_orifice_downstream)/2.0
+    
+    orifice_neutral_density = P_orifice*cc.Torr2eVm3/(Tgas*cc.Kelvin2eV)
+    
+    print('-------------------ORIFICE----------------------')
+    print('Pressure:\t\t\t{:.3f} Torr (upstream)\n\t\t\t\t{:.3f} Torr (downstream)\n\t\t\t\t{:.3f} Torr (average)'.format(
+            P_orifice_upstream,P_orifice_downstream,P_orifice))
+    
+    TeV_orifice = ambipolar_diffusion_model(orifice_diameter/2.0,orifice_neutral_density,
+                                            Tgas*cc.Kelvin2eV)[0]
+    print('Electron Temperature:\t\t{:.3f} eV'.format(TeV_orifice))
+    
+    delta = 1.0
+    ne_bar_orifice = ne_bar*10
+    
+    while(delta>=solver_tol):
+        ne_old = np.abs(ne_bar_orifice)
+        ne_bar_orifice = orifice_plasma_density_model(Id,TeV_orifice,TeV,orifice_length,
+                                                      orifice_diameter,ne_old,
+                                                      orifice_neutral_density,E_iz)
+        delta = np.abs(1-ne_bar_orifice/ne_old)
+        if solver_out:
+            print(delta,ne_bar_orifice)
+    
+    print('Plasma Density:\t\t\t{:.3E} /m^3'.format(ne_bar_orifice))
+    print('Peak Density:\t\t\t{:.3E} /m^3'.format(ne_bar_orifice/avg_to_peak))
+    
+
+
+
+
+
+
+
+
+
+
+
