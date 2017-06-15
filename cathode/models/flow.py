@@ -83,6 +83,19 @@ def poiseuille_flow(length,diameter,flow_rate_sccm,T,P_outlet,species='Xe-Goebel
     return np.sqrt(P_outlet**2 + 0.78*flow_rate_sccm*viscosity(T,species,units='poise')*Tm*length_cm/diameter_cm**4)
 
 def sonic_orifice(Tgas,flow_rate_sccm,diameter,species='Xe',output = 'density'):
+    """
+    Returns the neutral/heavy number density or pressure for a given flow rate 
+    in sccm and the orifice diameter.
+    Inputs:
+        gas temperature, K
+        flow rate, SCCM
+        orifice diameter, m
+    Optional Inputs:
+        species, defaults to Xe
+        output, defaults to 'density' (set to 'pressure' to output Torr)
+    Output:
+        number density, m^-3 (or pressure, Torr)
+    """
     #number flow rate
     ndot = flow_rate_sccm*(cc.sccm2eqA/cc.e)
     
@@ -104,8 +117,7 @@ def sonic_orifice(Tgas,flow_rate_sccm,diameter,species='Xe',output = 'density'):
 
     elif output == 'density':
         return number_density
-    
-    return NotImplemented
+
 
 def choked_flow():
     return NotImplemented
