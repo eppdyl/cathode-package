@@ -387,7 +387,8 @@ def reaction_rate(xsec_spline,TeV,Emin=None,Emax=None,output_xsec=False):
 @np.vectorize
 def beam_reaction_rate(xsec_spline,Ebeam):
     """
-    Returns the reaction rate for monoenergetic beam electrons and cross section
+    Returns the reaction rate for monoenergetic beam 
+    electrons and cross section
     described by xsec_spline.
     Inputs:
         Cross section spline created by create_cross_section_spline()
@@ -402,8 +403,11 @@ def beam_reaction_rate(xsec_spline,Ebeam):
     return v*xsec_spline(Ebeam)
             
             
-            
-            
+def finite_temperature_beam_reaction_rate(xsec_spline,Ebeam,Tbeam):
+    return NotImplemented
+
+def domonkos_beam_reaction_rate():
+    return NotImplemented
             
             
             
