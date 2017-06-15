@@ -237,7 +237,6 @@ def approx_solve(Id,orifice_length,orifice_diameter,
             print(delta,ne_bar,phi_s)
         
     avg_to_peak = 2*jn(1,cc.BesselJ01)/cc.BesselJ01
-    
     print('Plasma Density:\t\t\t{:.3E} /m^3'.format(ne_bar))
     print('Peak Density:\t\t\t{:.3E} /m^3'.format(ne_bar/avg_to_peak))
     print('Sheath Voltage:\t\t\t{:.3f} V'.format(phi_s))

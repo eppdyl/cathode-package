@@ -339,7 +339,7 @@ def reaction_rate(xsec_spline,TeV,Emin=None,Emax=None,output_xsec=False):
     minimum and maximum energy for integration (Emin should be the threshold
     energy for the process, Emax should be the useful limit of the spline)
     Inputs:
-        Cross section spline, created by create_cross_section_spline()
+        Cross section spline, created by create_cross_section_spline() (CrossSection object)
         Electron temperature, eV
         Minimum energy, eV (threshold for process of interest)
         Maximum energy, eV (limit of data or maximum extrapolation for spline)
@@ -388,8 +388,7 @@ def reaction_rate(xsec_spline,TeV,Emin=None,Emax=None,output_xsec=False):
 def beam_reaction_rate(xsec_spline,Ebeam):
     """
     Returns the reaction rate for monoenergetic beam 
-    electrons and cross section
-    described by xsec_spline.
+    electrons and cross section described by xsec_spline.
     Inputs:
         Cross section spline created by create_cross_section_spline()
         Beam energy in eV

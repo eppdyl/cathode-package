@@ -249,3 +249,6 @@ class M:
         else:
             raise KeyError
         
+def R_specific(species):
+    #specific gas constant in J/(kg-K) for the species given
+    return kB/M.species(species)

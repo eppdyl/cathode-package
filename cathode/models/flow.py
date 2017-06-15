@@ -82,6 +82,10 @@ def poiseuille_flow(length,diameter,flow_rate_sccm,T,P_outlet,species='Xe-Goebel
     
     return np.sqrt(P_outlet**2 + 0.78*flow_rate_sccm*viscosity(T,species,units='poise')*Tm*length_cm/diameter_cm**4)
 
-def sonic_orifice():
+def sonic_orifice(Tgas,flow_rate_sccm,diameter,species='Xe'):
+    flow_rate_number = flow_rate_sccm*(cc.sccm2eqA/cc.e)
+    
     return NotImplemented
 
+def choked_flow():
+    return NotImplemented
