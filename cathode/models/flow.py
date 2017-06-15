@@ -82,8 +82,28 @@ def poiseuille_flow(length,diameter,flow_rate_sccm,T,P_outlet,species='Xe-Goebel
     
     return np.sqrt(P_outlet**2 + 0.78*flow_rate_sccm*viscosity(T,species,units='poise')*Tm*length_cm/diameter_cm**4)
 
-def sonic_orifice(Tgas,flow_rate_sccm,diameter,species='Xe'):
-    flow_rate_number = flow_rate_sccm*(cc.sccm2eqA/cc.e)
+def sonic_orifice(Tgas,flow_rate_sccm,diameter,species='Xe',output = 'density'):
+    #number flow rate
+    ndot = flow_rate_sccm*(cc.sccm2eqA/cc.e)
+    
+    #orifice area, m^2
+    A_orifice = cc.pi*diameter**2/4.0
+    
+    #sound speed, m/s
+    sound_speed = np.sqrt((5/3.0)*cc.R_specific(species)*Tgas)
+    
+    #number density of neutral or heavy particles described by sonic velocity
+    #1/m^3
+    number_density = ndot/(A_orifice*sound_speed)
+    
+    #pressure in Torr
+    pressure = number_density*Tgas*cc.Kelvin2eV/cc.Torr2eVm3
+    
+    if output == 'pressure':
+        return pressure
+
+    elif output == 'density':
+        return number_density
     
     return NotImplemented
 
