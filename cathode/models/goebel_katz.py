@@ -42,7 +42,7 @@ def ambipolar_diffusion_model(cathode_radius,neutral_density,TiV,species='Xe'):
     
     goal = lambda x: lhs(x) - rhs(x)
     
-    electron_temperature = fsolve(goal,x0=2.0)
+    electron_temperature = fsolve(goal,x0=3.0)
     
     return electron_temperature
 
@@ -115,9 +115,11 @@ def plasma_resistance(length,diameter,ne,neutral_density,TeV):
 def random_electron_current_density(ne,TeV,phi_s):
     return cc.e*ne*cp.mean_velocity(TeV,'e')*np.exp(-phi_s/TeV)/4.0
 
-def heat_loss(Tw=None,method='fixed'):
+def heat_loss(Tw=None,method='fixed',curve=None):
     if (method == 'fixed'):
         return 13
+    if (method == 'spline'):
+        return curve(Tw)
     
 def insert_plasma_power_balance(ne,Tw,phi_s,Id,TeV,D,phi_wf,E_iz,length,diameter,neutral_density): #may want to add species later
     A_emit = cc.pi*length*diameter
@@ -169,12 +171,12 @@ def zerofun(x,args):
     
     return goal
 
-def sheath_voltage(Id,TeV,phi_wf,length,diameter,ne,neutral_density):
-    return ((heat_loss()/Id) + 2.5*TeV + phi_wf - Id*plasma_resistance(length,diameter,ne,neutral_density,TeV))
+def sheath_voltage(Id,TeV,phi_wf,length,diameter,ne,neutral_density,h_loss=heat_loss()):
+    return ((h_loss/Id) + 2.5*TeV + phi_wf - Id*plasma_resistance(length,diameter,ne,neutral_density,TeV))
 
-def average_plasma_density_model(Id,TeV,phi_wf,length,diameter,ne,neutral_density,plasma_potential,E_iz):
+def average_plasma_density_model(Id,TeV,phi_wf,length,diameter,ne,neutral_density,plasma_potential,E_iz,h_loss=heat_loss()):
     
-    phi_s = sheath_voltage(Id,TeV,phi_wf,length,diameter,ne,neutral_density)
+    phi_s = sheath_voltage(Id,TeV,phi_wf,length,diameter,ne,neutral_density,h_loss)
     Rp = plasma_resistance(length,diameter,ne,neutral_density,TeV)
     f_n = np.exp(-(plasma_potential-phi_s)/TeV) #edge-to-average ratio as defined by Goebel
     
@@ -202,7 +204,7 @@ def orifice_plasma_density_model(Id,TeV,TeV_insert,length,diameter,ne,neutral_de
 
 def approx_solve(Id,orifice_length,orifice_diameter,
                  insert_length,insert_diameter,flow_rate_sccm,Tgas,P_outlet,
-                 E_iz,phi_wf,plasma_potential,solver_tol = 0.001,solver_out = False):
+                 E_iz,phi_wf,plasma_potential,h_loss=heat_loss(),solver_tol = 1E-8,solver_out = False):
     
     print('-------------------INSERT-----------------------')
     #use the orifice dimensions and the flow rate to get P_ins
@@ -222,14 +224,14 @@ def approx_solve(Id,orifice_length,orifice_diameter,
     #first guess value for ne
     #sheath voltage at initial step
     ne_bar = 1.5E21
-    phi_s = sheath_voltage(Id,TeV,phi_wf,insert_length,insert_diameter,ne_bar,neutral_density)
+    phi_s = sheath_voltage(Id,TeV,phi_wf,insert_length,insert_diameter,ne_bar,neutral_density,h_loss)
     delta = 1.0
     
     while(delta>=solver_tol):
         phi_s_old = phi_s
         ne_old = ne_bar
         ne_bar,phi_s = average_plasma_density_model(Id,TeV,phi_wf,insert_length,insert_diameter,
-                                                    ne_old,neutral_density,plasma_potential,E_iz)
+                                                    ne_old,neutral_density,plasma_potential,E_iz,h_loss)
         delta = np.max(np.abs([1-phi_s/phi_s_old,1-ne_bar/ne_old]))
         if solver_out:
             print(delta,ne_bar,phi_s)
@@ -258,7 +260,7 @@ def approx_solve(Id,orifice_length,orifice_diameter,
     solve_fun = lambda n: n - orifice_plasma_density_model(Id,TeV_orifice,TeV,orifice_length,
                                                       orifice_diameter,n,
                                                       orifice_neutral_density,E_iz)
-    ne_bar_orifice = fsolve(solve_fun,1E19)[0]
+    ne_bar_orifice = fsolve(solve_fun,1E18)[0]
     
     print('Plasma Density:\t\t\t{:.3E} /m^3'.format(ne_bar_orifice))
     print('Peak Density:\t\t\t{:.3E} /m^3'.format(ne_bar_orifice/avg_to_peak))
