@@ -117,7 +117,7 @@ def electron_electron_collision_frequency():
 ###############################################################################
 
 @np.vectorize
-def charge_exchange_xsec(TeV,species='Xe'):
+def charge_exchange_xsec(TiV,species='Xe'):
     """
     Returns charge exchange cross section for the specified species in m^2 for 
     the specified ION temperature in eV.
@@ -144,9 +144,9 @@ def charge_exchange_xsec(TeV,species='Xe'):
     
     #special case for Argon and N2 fits:
     if species == 'Ar' or species == 'N2':
-        return (A*cc.angstrom - B*cc.angstrom*np.log(TeV))**2
+        return (A*cc.angstrom - B*cc.angstrom*np.log(TiV))**2
     else:
-        return (A - B*np.log(TeV))*cc.angstrom**2
+        return (A - B*np.log(TiV))*cc.angstrom**2
     
 
 def goebel_electron_neutral_xsec(TeV):
