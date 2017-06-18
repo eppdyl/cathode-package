@@ -121,3 +121,44 @@ def sonic_orifice(Tgas,flow_rate_sccm,diameter,species='Xe',output = 'density'):
 
 def choked_flow():
     return NotImplemented
+
+def modified_poiseuille_flow(length,diameter,flow_rate_sccm,T,species='Xe'):
+    """
+    Method used by Domonkos (1999,2002) to solve for the neutral/heavy density
+    in the orifice and insert regions.
+    Uses the sonic orifice calculation to get the density/pressure at the choked
+    orifice, then uses this value to find the upstream pressure, with a 
+    correction for the sudden constriction due to the orifice.
+    Inputs:
+        orifice/channel length, m
+        orifice/channel diameter, m
+        flow rate, sccm
+        gas temperature, K
+    Optional Input:
+        species, defaults to Xe
+    Output:
+        pressure upstream of orifice, Torr
+    """
+    po = sonic_orifice(T,flow_rate_sccm,diameter,
+                       species=species,output='pressure')
+    po_pa = po*cc.Torr #since we use Torr generally but the formula uses Pa in the correction
+    
+    p_upstream = poiseuille_flow(length,diameter,flow_rate_sccm,T,po,species=species)
+    p_up_pa = p_upstream*cc.Torr #convert to pascals, as before
+    
+    #evaluate dynamic viscosity in SI units
+    mu = viscosity(T,species=species,units = 'kg/(m-s)')
+    
+    #evaluate "average" velocity with linearized p-gradient
+    ubar = ((diameter**2)/(32*mu))*(p_up_pa-po_pa)/(length)
+    
+    #evaluate "average" density
+    rho_o = ((p_up_pa+po_pa)/2)/(cc.R_specific(species)*T)
+    
+    #correction, where KL is assumed to be 0.5
+    KL = 0.5
+    correction = (0.5)*(1+KL)*rho_o*ubar**2
+    correction_Torr = correction/cc.Torr
+    
+    return p_upstream+correction_Torr
+    
