@@ -42,7 +42,7 @@ def ambipolar_diffusion_model(cathode_radius,neutral_density,TiV,species='Xe'):
     
     goal = lambda x: lhs(x) - rhs(x)
     
-    electron_temperature = fsolve(goal,x0=3.0)
+    electron_temperature = fsolve(goal,x0=5.0)
     
     return electron_temperature
 
