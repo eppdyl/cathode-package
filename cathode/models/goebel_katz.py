@@ -179,6 +179,7 @@ def average_plasma_density_model(Id,TeV,phi_wf,length,diameter,ne,neutral_densit
     phi_s = sheath_voltage(Id,TeV,phi_wf,length,diameter,ne,neutral_density,h_loss)
     Rp = plasma_resistance(length,diameter,ne,neutral_density,TeV)
     f_n = np.exp(-(plasma_potential-phi_s)/TeV) #edge-to-average ratio as defined by Goebel
+    #f_n = neutral_density*cp.goebel_ionization_xsec(TeV)*cp.mean_velocity(TeV,'e')*diameter/(4*np.sqrt(cc.e*TeV/cc.M.species('Xe')))
     
     A_emit = length*cc.pi*diameter
     V_emit = length*cc.pi*diameter**2/4.0

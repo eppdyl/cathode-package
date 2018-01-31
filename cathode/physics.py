@@ -363,19 +363,21 @@ def reaction_rate(xsec_spline,TeV,Emin=None,Emax=None,output_xsec=False):
     normalization = (8.0*np.pi*cc.e**2.0/np.sqrt(cc.me))/(
             (2.0*np.pi*cc.e*TeV)**(3.0/2.0))
     
+    scaling = np.max(xsec_spline.scalings)
+    
     #define integrand lambda functions
-    energy_integrand = lambda E: E*xsec_spline(E)*np.exp(-E/TeV)
+    energy_integrand = lambda E: E*xsec_spline(E)*np.exp(-E/TeV)*scaling
     flux_integrand = lambda E: E*np.exp(-E/TeV)
     
     #integrate (note that these return the error estimate as the second output)
-    energy_integral = quad(energy_integrand,Emin,Emax,epsabs=1.0E-30,limit=1000)
-    flux_integral = quad(flux_integrand,0.0,Emax,epsabs=1.0E-30,limit=1000)
+    energy_integral = quad(energy_integrand,Emin,Emax,epsabs=1.0E-30,limit=5000)
+    flux_integral = quad(flux_integrand,0.0,Emax,epsabs=1.0E-30,limit=5000)
     
     #reaction rate
-    K = normalization*energy_integral[0]
+    K = normalization*energy_integral[0]/scaling
     
     #Maxwellian-averaged cross section
-    xsec_avg = energy_integral[0]/flux_integral[0]
+    xsec_avg = energy_integral[0]/flux_integral[0]/scaling
     
     #if specified, output both the cross section and reaction rate
     if output_xsec:
