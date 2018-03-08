@@ -112,6 +112,7 @@ def electron_ion_collision_frequency():
 def electron_electron_collision_frequency():
     return NotImplemented
 
+
 ###############################################################################
 #                             Cross Section Fits
 ###############################################################################
@@ -147,7 +148,7 @@ def charge_exchange_xsec(TiV,species='Xe'):
         return (A*cc.angstrom - B*cc.angstrom*np.log(TiV))**2
     else:
         return (A - B*np.log(TiV))*cc.angstrom**2
-    
+
 
 def goebel_electron_neutral_xsec(TeV):
     """ 
@@ -325,8 +326,8 @@ def create_cross_section_spline(filename,xsec_type,chosen=None):
                     out += sp
             
             return out
-            
-            
+
+
 ###############################################################################
 #                     Reaction Rate Integrals
 ###############################################################################
@@ -384,7 +385,7 @@ def reaction_rate(xsec_spline,TeV,Emin=None,Emax=None,output_xsec=False):
         return K,xsec_avg
     else:
         return K    
-    
+
 
 @np.vectorize
 def beam_reaction_rate(xsec_spline,Ebeam):
@@ -402,26 +403,34 @@ def beam_reaction_rate(xsec_spline,Ebeam):
     v = np.sqrt(2.0*cc.e*Ebeam/cc.me)
     
     return v*xsec_spline(Ebeam)
-            
-            
+
+
 def finite_temperature_beam_reaction_rate(xsec_spline,Ebeam,Tbeam):
     return NotImplemented
 
 def domonkos_beam_reaction_rate():
     return NotImplemented
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
+
+def mean_free_path(xsec_spline,TeV,target_species_density):
+    '''
+    Returns the mean free path for the given collision type assuming a
+    maxwellian distribution of test particles with temperature TeV and
+    collision cross section as a function of energy given by xsec_spline.
+    '''
+    rate,xsec_avg = reaction_rate(xsec_spline,TeV,output_xsec=True)
+
+    return 1/(target_species_density*xsec_avg)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
