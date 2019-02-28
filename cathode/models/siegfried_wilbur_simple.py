@@ -74,7 +74,7 @@ def solve(eps_i, Sig_i, Sig_0, TeV, TgV,
         # TODO Calculate the pressure if necessary
         
         # Arguments for our goal function
-        args = [P,TeV,TgV,TgV,Sig_i,Sig_0,eps_i]
+        args = [P,lTeV,TgV,TgV,Sig_i,Sig_0,eps_i]
         
         # Solving for the ionization fraction
         root_options = {'maxiter':int(1e5),'xtol':1e-8,'ftol':1e-8}
@@ -84,7 +84,7 @@ def solve(eps_i, Sig_i, Sig_0, TeV, TgV,
                 method='lm',options=root_options)
         
         lalpha = sol.x
-        lne = P/cc.e*1/(TeV + TgV*(1/lalpha-1))
+        lne = P/cc.e*1/(lTeV + TgV*(1/lalpha-1))
         alpha_out.append(lalpha)
         ne_out.append(lne)
 
