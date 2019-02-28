@@ -22,62 +22,6 @@ import numpy as np
 from scipy.optimize import root
 from itertools import product
 
-def hg_lambda_pr(ne,ng,phi_p):
-    """
-     Function: hg_lambda_pr
-     Description: computes the mean free path for the primary electrons.
-     Applicable to mercury only! Based on Siegfried and Wilbur's computer model
-     
-     TODO: Add citation for computer model
-     Inputs: 
-     - ne: Electron density (1/m3)
-     - ng: Gas density (1/m3)
-     - phi_p: Plasma potential (V)
-    """
-    inv = 6.5e-17*ne/phi_p**2 + 1e3*ng*phi_p / (2.83e23 - 1.5*ng)
-    
-    return 1/inv
-
-
-def jth_rd(DRD,Tc,phi_wf,schottky=False,ne=1,phi_p=1,TeV=1):
-    """
-    Function: jth_rd
-    Description: computers the thermionic current density, based on
-    Richardson-Dushman's law, with an optional Schottky effect
-    """
-    kb = cc.Boltzmann
-    q = cc.elementary_charge
-     
-    fac = DRD*Tc**2
-
-    # If we consider the Schottky effect, calculate the effective work function
-    if(schottky):
-        phi = phi_eff(ne,phi_p,TeV,phi_wf)
-
-    jth = fac*np.exp(-q*phi/(kb*Tc))
-
-    return jth
-
-
-def phi_eff(ne,phi_p,TeV,phi_wf):
-    """
-    Function: phi_eff
-    Description: computes the effective work function, based on a model of a
-    thermionic double sheath by Prewett and Allen    
-    """ 
-    q = cc.elementary_charge
-    eps0 = cc.epsilon0
-    
-    # Cathode surface field
-    Ec = np.sqrt( ne*q*TeV / eps0 );
-
-    tmp = 2*np.sqrt(1 + 2*phi_p/TeV);
-    tmp = tmp - 4;
-
-    Ec = Ec*np.sqrt(tmp);
-
-    # Effective work function
-    return phi_wf - np.sqrt(q/(4*np.pi*eps0)*Ec) 
 
 
 def goal_function(X,args):
@@ -232,3 +176,176 @@ def solve(cathode_diameter,
             solvec.append(rescaled_results)
             
     return np.array(solvec)
+
+
+
+
+# -*- coding: utf-8 -*-
+"""
+Created on Thu May 25 15:51:24 2017
+
+@author: Arbiter
+"""
+
+from __future__ import division # Because reasons.
+import numpy as np
+from scipy.optimize import fsolve,root
+import matplotlib.pyplot as plt
+import scipy.constants as cs
+
+
+### Constants
+cm = cs.centi
+angstrom = 1E-10
+e = cs.elementary_charge
+me = cs.electron_mass
+kB = cs.k
+pi = np.pi
+eps0 = cs.epsilon_0
+
+### Cathode info
+r = 0.0368*cm
+L = 0.076*cm
+
+#r = 0.014*cm
+#L = 0.075*cm
+### Gas info
+E_i = 12.2
+E_rad = 10.0
+T_n = 0.1 
+M = cs.u*131.293 # Mass of Xe, kg
+
+### Experimental data
+T_e_ins = 0.8 # Insert electron temp., eV
+#T_e_ins = 0.46 # Insert electron temp., eV
+
+
+
+def sigma_iz(T_e):
+    return (3.97+0.643*T_e-0.0368*T_e**2)*np.exp(-12.127/T_e)*angstrom**2
+
+def sigma_rad(T_e):
+    return 1.93E-19*np.exp(-11.6/T_e)/np.sqrt(T_e)
+
+def sigma_cond(n_e,T_e,N_n):
+    return eps0*omega_p(n_e)**2/(nu_ei(n_e,T_e)+nu_en(N_n,T_e))
+
+def coulombLog(n_e,T_e):
+    return 30 - (1/2)*np.log(n_e/(T_e**3))
+
+def nu_ei(n_e,T_e):
+    return 2.9E-12*n_e*coulombLog(n_e,T_e)/(T_e**(3/2))
+
+def nu_en(N_n,T_e):
+    return 5E-19*N_n*np.sqrt(e*T_e/me)
+
+def omega_p(n_e):
+    return np.sqrt(n_e*e**2/(eps0*me))
+
+def resistance(n_e,T_e,N_n):
+    return (L/(pi*r**2))/sigma_cond(n_e,T_e,N_n)
+
+def J_e(n_e,T_e):
+    return e*n_e*np.sqrt(e*T_e/(2*pi*me))
+
+def J_i(n_e,T_e):
+    return np.sqrt(me/M)*J_e(n_e,T_e)
+
+def ion_production(n_e,T_e,N_n):
+    return pi*r**2*L*4*sigma_iz(T_e)*J_e(n_e,T_e)*N_n
+
+def ion_loss(n_e,T_e):
+    return 2*pi*r*(r+L)*J_i(n_e,T_e)
+
+def ionization_loss(n_e,T_e,N_n):
+    return E_i*ion_production(n_e,T_e,N_n)
+
+def radiation_loss(n_e,T_e,N_n):
+    return pi*r**2*L*E_rad*4*sigma_rad(T_e)*J_e(n_e,T_e)*N_n
+
+def convection_loss(T_e,T_e_ins,I_d):
+    return I_d*(T_e-T_e_ins)
+
+def ohmic_heating(n_e,T_e,N_n,I_d):
+    return I_d**2*resistance(n_e,T_e,N_n)
+
+def power_balance(n_e,N_n,T_e,T_e_ins,I_d):
+    #print  ohmic_heating(n_e,T_e,N_n),ionization_loss(n_e,T_e,N_n),radiation_loss(n_e,T_e,N_n),convection_loss(T_e)
+    return ohmic_heating(n_e,T_e,N_n,I_d)-ionization_loss(n_e,T_e,N_n)-radiation_loss(n_e,T_e,N_n)-convection_loss(T_e,T_e_ins,I_d)
+
+def ion_balance(n_e,T_e,N_n):
+    return ion_production(n_e,T_e,N_n)-ion_loss(n_e,T_e)
+
+def flow_balance(n_e,N_n,T_e,F):
+    return pi*r**2*e*N_n*np.sqrt(e*T_n/(2*pi*M))-(0.0718*F-pi*r**2*J_i(n_e,T_e))
+
+def zerofun(x,T_e_ins,I_d,F):
+    n_e=x[0]*1E21
+    T_e=x[1]
+    N_n=x[2]*1E22
+    goal=np.zeros(3)
+    goal[0]=power_balance(n_e,N_n,T_e,T_e_ins,I_d)/1E6
+    goal[1]=ion_balance(n_e,T_e,N_n)*100
+    goal[2]=flow_balance(n_e,N_n,T_e,F)*100
+    
+    return goal
+
+### Operating condition
+Idvec = np.arange(1.,10.,0.1) # A
+mdotvec = np.array([1,6,10]) # sccm
+
+### Storage for all solutions
+# 3 mass flow rates
+# size(Idvec) currents
+# store ne,ng,Te,convergence
+solvec = np.zeros([3,np.size(Idvec),4])
+
+
+#x0 = np.array([1,2.5,1])
+x0vec = np.array( [ [1,2.5,1],[2,1.8,2],[0.5,1.7,1]])
+TeInsvec = np.array([0.848866477452,0.779318325967,0.791571666652])
+
+#mdot_idx = 0
+#Id_idx = 0
+#filename = 'mandell_solvec_mdot-'
+#for mdot in np.nditer(mdotvec):
+#		print mdot
+#		x0 = x0vec[mdot_idx]
+#		filename += str(mdot)
+#		Id_idx = 0
+#
+#		#T_e_ins = TeInsvec[mdot_idx]
+#		T_e_ins = 0.8
+#
+#		for Id in np.nditer(Idvec):
+#				data = (T_e_ins,Id,mdot) 
+#				optimize_results = root(zerofun,x0,data,method='lm',options={'maxiter':1000000,'xtol':1e-8,'ftol':1e-8})
+#				n_e,T_e,N_n = optimize_results.x
+#				n_e *= 1E21
+#				N_n *= 1E22
+#				solvec[mdot_idx,Id_idx,:] = [n_e,N_n,T_e,optimize_results.success]
+#				Id_idx += 1
+#
+#		np.save(filename,solvec[mdot_idx,:,:])
+#		mdot_idx += 1
+#		filename = 'mandell_solvec_mdot-'
+#
+#np.save('mandell_solvec-all',solvec)
+x0 = np.array([1.0,1.6,1])
+data = (T_e_ins,3.26,6)
+optimize_results = root(zerofun,x0,data,method='lm',options={'maxiter':1000000,'xtol':1e-8,'ftol':1e-8})
+n_e,T_e,N_n = optimize_results.x
+n_e *= 1e21
+N_n *= 1e22
+print n_e,T_e,N_n
+
+#ion_output = pi*r**2*J_i(n_e,T_e)
+#ion_eff = ion_output/(resistance(n_e,T_e,N_n)*I_d**2)
+#utilization = ion_output/(0.0718*F)
+#voltage_drop = resistance(n_e,T_e,N_n)*I_d
+
+#print('Electron Density\tElectron Temperature\tNeutral Density')
+#print(str(n_e)+'\t'+str(T_e)+'\t\t'+str(N_n))
+#print('Orifice Vd\t\tIon Output\t\tIon Output/Power\tUtilitzation')
+#print(str(voltage_drop)+'\t\t'+str(ion_output)+'\t\t'+str(ion_eff)+'\t'+str(utilization))
+
