@@ -21,10 +21,10 @@ import cathode.constants as cc
 import numpy as np
 
 from scipy.optimize import root
-
+from itertools import product
 
 def hg_lambda_pr(ne,ng,phi_p):
-    '''
+    """
      Function: hg_lambda_pr
      Description: computes the mean free path for the primary electrons.
      Applicable to mercury only! Based on Siegfried and Wilbur's computer model
@@ -34,18 +34,18 @@ def hg_lambda_pr(ne,ng,phi_p):
      - ne: Electron density (1/m3)
      - ng: Gas density (1/m3)
      - phi_p: Plasma potential (V)
-    '''
+    """
     inv = 6.5e-17*ne/phi_p**2 + 1e3*ng*phi_p / (2.83e23 - 1.5*ng)
     
     return 1/inv
 
 
 def jth_rd(DRD,Tc,phi_wf,schottky=False,ne=1,phi_p=1,TeV=1):
-    '''
+    """
     Function: jth_rd
     Description: computers the thermionic current density, based on
     Richardson-Dushman's law, with an optional Schottky effect
-    '''
+    """
     kb = cc.Boltzmann
     q = cc.elementary_charge
      
@@ -61,11 +61,11 @@ def jth_rd(DRD,Tc,phi_wf,schottky=False,ne=1,phi_p=1,TeV=1):
 
 
 def phi_eff(ne,phi_p,TeV,phi_wf):
-    '''
+    """
     Function: phi_eff
     Description: computes the effective work function, based on a model of a
     thermionic double sheath by Prewett and Allen    
-    ''' 
+    """ 
     q = cc.elementary_charge
     eps0 = cc.epsilon0
     
@@ -127,7 +127,7 @@ def goal_function(X,args):
     # Insert surface power balance
     goal[2] = ji*Ae*(phi_p + eps_i - phi_wf) 
     goal[2] -= qth_val * Leff 
-    goal[2] -= Ie*phi_eff(ne,phi_p,TeV)
+    goal[2] -= Ie*phi_eff(ne,phi_p,TeV,phi_wf)
 
     # Plasma power balance
     goal[3] = phi_p*Ie - eps_i * Ii - 5/2*TeV*Id
@@ -135,10 +135,10 @@ def goal_function(X,args):
     return goal
 
 def sw_pressure_correlation(mdot,Id,orifice_diameter,mass):
-    '''
+    """
     Function: sw_pressure_correlation
     Calculates the pressure correlation proposed by Siegfried and Wilbur
-    '''
+    """
     amu_mass = mass/cc.atomic_mass
     if amu_mass == cc.M.Hg:
         c1 = 13.7
@@ -154,22 +154,39 @@ def sw_pressure_correlation(mdot,Id,orifice_diameter,mass):
     
     return Ptorr * cc.Torr
 
-def sw_qth():
-    return 1
-
 def solve(cathode_diameter, 
           eps_i, mass,
           phi_wf, DRD,
           TeV, 
           P = None, mdot = None, orifice_diameter = None,
           Id = None, Pfunc = sw_pressure_correlation,
-          lambda_pr = hg_lambda_pr, qth = sw_qth,
+          lambda_pr = hg_lambda_pr, qth = None,
           solver_tol = 1E-8,solver_out = False):
+    """
+    Solves for the electron and neutral densities, plasma potential, and
+    neutral gas temperature. Uses:
+        1. Perfect gas law
+        2. Current balance
+        3. Insert surface power balance
+        4. Plasma volume power balance
+    Inputs:
+        1. Geometry: cathode_diameter, orifice_diameter (optional). Both in m
+        2. Gas: ionization potential "eps_i" (eV), particle mass "mass" (kg)
+        3. Emitter info: work function "phi_wf" (eV), Richardson-Dushman 
+        constant for the material considered "DRD" (A/m^2)
+        4. Experimental info: electron temperature "TeV" (eV)
+        5. Operating conditions: either the total pressure "P" (Pa) or the 
+        discharge current "Id" (A) and mass flow rate "mdot" (milli-eqA)
+        6. Necessary functions: a pressure correlation "Pfunc" if Id and mdot 
+        are used to determine the total pressure, an evaluation of the mean 
+        free path for primary electrons "lambda_pr", and an estimate of the 
+        heat loss "qth"
+    """   
     ### Sanity checks...
-    if P == None and mdot == None and Id == None:
+    if (P is None) and (mdot is None) and (Id is None):
         raise ValueError("Either [P] or [mdot AND Id] must be specified")
         
-    if (P != None) and (mdot != None or Id != None):
+    if (P is not None) and ((mdot is not None) or (Id is not None)):
         raise ValueError("Only [P] or [mdot and Id] can be specified. Not both")
    
     ### Constants
@@ -177,8 +194,11 @@ def solve(cathode_diameter,
     kb = cc.Boltzmann
 
     ### Id case
-    if Id != None and mdot != None:
-        cases = zip(Id,mdot)
+    if (Id is not None) and (mdot is not None):
+        if(len(Id) == len(mdot)):
+            cases = zip(Id,mdot)
+        else:
+            cases = product(Id,mdot)
         
         solvec = []
         for lId,lmdot in cases:
@@ -199,7 +219,7 @@ def solve(cathode_diameter,
 
             # Arguments
             dc = cathode_diameter
-            args = [dc, eps_i, mass, phi_wf, DRD, TeV, P, Id, lambda_pr, qth]
+            args = [dc, eps_i, mass, phi_wf, DRD, TeV, lP, lId, lambda_pr, qth]
             
             # Solve!
             optimize_results = root(goal_function,x0,args=args,
@@ -211,108 +231,5 @@ def solve(cathode_diameter,
             rescaled_results = [ne*1e20,nc*1e20,phi_p,Tc*1e3-273.15]
             
             solvec.append(rescaled_results)
-
-
-
-
-#
-#### Gas info 
-#epsi = 10.437 # Ionization potential of Hg, V
-#M = 208.59 * cc.atomic_mass # Mass of Hg, kg
-#
-#### Cathode info
-#do = 0.96*1e-3 # Orifice diameter, m
-#dc = 3.9*1e-3 # Cathode insert diameter, m
-#rc = dc/2 # Cathode insert radius, m
-#Li = 2.2*1e-3 # Insert length, m
-#
-#### Emitter
-#phi_w = 1.94 # Work function, eV
-#DRD = 120e4 # Richardson-Dushman constant, A/m2/K2
-#
-#### Experimental data
-#TeV = 0.71 # Electron temperature, eV
-#filename = 'data/siegfried-refined/qth.csv'
-#qth_data = np.genfromtxt(filename,dtype=np.float64,delimiter=',',names=True)
-#set_interp = interp1d(qth_data['Tc'],qth_data['qth'],kind='cubic')
-#
-#### Operating condition
-#Idvec = np.arange(1.,5.,0.1)
-#mdot = 100 # Equivalent mA
-#
-#### Storage for all solutions
-#solvec = np.zeros(np.size(Idvec))
-#solvec.resize((np.size(Idvec),4))
-#
-#### Let's solve for various currents...
-#idx = 0
-#for Id in np.nditer(Idvec):
-#    # Get the pressure
-#    PTorr = mdot / (do*1e3)**2 * (13.7 + 7.82*Id)*1e-3
-#    P = PTorr*cs.torr
-#    
-#    # Initial guess: densities and temperature are scaled
-#    Tc0 = 1050 + 273.15 # Wall temperature, K
-#    ne0 = 1.5e20 # Electron density, 1/m3
-#    nc0 = 1./(kb*Tc0)*(P - ne0*kb*(TeV*q/kb + Tc0)) # Neutral density from perfect gas law, 1/m3
-#    phi_p0 = 7 # Plasma potential, V
-#
-#    x0 = [ne0*1e-20,nc0*1e-20,phi_p0,Tc0*1e-3]
-#
-#    # Arguments of the function
-##    ne,nc,phi_p,Tc = fsolve(zerofunc,x0) 
-#    optimize_results = root(zerofunc,x0,method='lm',options={'maxiter':1000000,'xtol':1e-8,'ftol':1e-8})
-#    ne,nc,phi_p,Tc = optimize_results.x
-#    solvec[idx,:] = [ne*1e20,nc*1e20,phi_p,Tc*1e3-273.15]
-#    idx = idx + 1
-#
-##    print ne*1e20,nc*1e20,phi_p,Tc*1e3
-#
-#### Plots!
-## First the theoretical data
-#filename = 'data/siegfried-refined/ne_vs_Id_mdot-100mA_do-096mm.csv'
-#ne_vs_Id = np.genfromtxt(filename,dtype=np.float64,delimiter=',',names=True,skip_header=12)
-#
-#filename = 'data/siegfried-refined/phip_vs_Id_mdot-100mA_do-096mm.csv'
-#phip_vs_Id = np.genfromtxt(filename,dtype=np.float64,delimiter=',',names=True,skip_header=12)
-#
-#filename = 'data/siegfried-refined/Tc_vs_Id_mdot-100mA_do-096mm.csv'
-#Tc_vs_Id = np.genfromtxt(filename,dtype=np.float64,delimiter=',',names=True,skip_header=12)
-#
-## Smooth the data taken from plots
-#tck = splrep(ne_vs_Id['Id'],ne_vs_Id['ne'])
-#ne_idnew = np.arange(ne_vs_Id['Id'][0],ne_vs_Id['Id'][-1],0.01)
-#ne_sw = [ne_idnew,splev(ne_idnew,tck,der=0)]
-#
-#tck = splrep(phip_vs_Id['Id'],phip_vs_Id['phip'],s=0.01)
-#phip_idnew = np.arange(phip_vs_Id['Id'][0],phip_vs_Id['Id'][-1],0.01)
-#phip_sw = [phip_idnew,splev(phip_idnew,tck,der=0)]
-#
-#tck = splrep(Tc_vs_Id['Id'],Tc_vs_Id['Tc'],s=0.01)
-#Tc_idnew = np.arange(Tc_vs_Id['Id'][0],Tc_vs_Id['Id'][-1],0.01)
-#Tc_sw = [Tc_idnew,splev(Tc_idnew,tck,der=0)]
-#
-## Then some experimental data
-#filename = 'data/siegfried-refined/ne_vs_Id_mdot-100mA_do-096mm_xp.csv'
-#ne_vs_Id_xp = np.genfromtxt(filename,dtype=np.float64,delimiter=',',names=True,skip_header=12)
-#
-#filename = 'data/siegfried-refined/Tc_vs_Id_mdot-100mA_do-096mm_xp.csv'
-#Tc_vs_Id_xp = np.genfromtxt(filename,dtype=np.float64,delimiter=',',names=True,skip_header=12)
-#
-#
-## Actual plots
-#f,axarr = plt.subplots(3,sharex=True)
-#axarr[0].semilogy(Idvec,solvec[:,0],'k',ne_sw[0],ne_sw[1]*1e20,'k--',ne_vs_Id_xp['Id'],ne_vs_Id_xp['ne']*1e20,'k.')
-#axarr[0].set_ylabel('Plasma density (m$^{-3}$)')
-#axarr[0].grid(True)
-#
-#axarr[2].plot(Idvec,solvec[:,2],'k',phip_sw[0],phip_sw[1],'k--')
-#axarr[2].set_ylabel('Plasma potential (V)')
-#axarr[2].set_xlabel('Discharge current (A)')
-#axarr[2].grid(True)
-#
-#axarr[1].plot(Idvec,solvec[:,3],'k',Tc_sw[0],Tc_sw[1],'k--',Tc_vs_Id_xp['Id'],Tc_vs_Id_xp['Tc'],'k.')
-#axarr[1].set_ylabel('Insert temperature ($^\circ$C)')
-#axarr[1].grid(True)
-#
-#plt.show()
+            
+    return np.array(solvec)
