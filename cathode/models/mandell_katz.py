@@ -15,6 +15,8 @@ Spacecraft and Rockets, Vol. 34, No. 6, 1997.
 - Katz, I., Mandell, M. J., Patterson, M., and Domonkos, M., "Sensitivity of 
 Hollow Cathode Performance to Design and Operating Parameters," 35th 
 AIAA/ASME/SAE/ASEE Joint Propulsion Conference & Exhibit, 1999. 
+We use the typical plasma physics Coulomb logarithm expression, which differs
+only by 0.3% from the expression proposed by Mandell and Katz.
 """
 import cathode.constants as cc
 import numpy as np
@@ -22,29 +24,56 @@ import numpy as np
 from scipy.optimize import root
 from itertools import product
 
-def sigma_iz(T_e):
-    return (3.97+0.643*T_e-0.0368*T_e**2)*np.exp(-12.127/T_e)*angstrom**2
+import cathode.physics as cp
 
-def sigma_rad(T_e):
-    return 1.93E-19*np.exp(-11.6/T_e)/np.sqrt(T_e)
+def sig_iz_xe_mk(TeV):
+    '''
+    Function: sig_iz_xe_mk
+    Mandell and Katz' fit for the ionization cross section of xenon
+    Input:
+        - Te: electron temperature (eV)
+    Output:
+        - Ionization cross section (m2)
+    '''
+    eps_i = 12.127 # Ionization energy (eV)
+    return (3.97+0.643*TeV-0.0368*TeV**2)*np.exp(-eps_i/TeV)*cc.angstrom**2
 
-def sigma_cond(n_e,T_e,N_n):
-    return eps0*omega_p(n_e)**2/(nu_ei(n_e,T_e)+nu_en(N_n,T_e))
+def sig_ex_xe_mk(TeV):
+    '''
+    Function: sig_ex_xe_mk
+    Mandell and Katz' fit for the excitation cross section of xenon
+    Input:
+        - Te: electron temperature (eV)
+    Output:
+        - Excitation cross section (m2)
+    '''
+    eps_rad = 11.6 # Excitation energy (eV)
+    return 1.93e-19*np.exp(-eps_rad/TeV)/np.sqrt(TeV)
 
-def coulombLog(n_e,T_e):
-    return 30 - (1/2)*np.log(n_e/(T_e**3))
+def nu_en(ng,TeV):
+    '''
+    Function: nu_en
+    Mandell and Katz' expression for the electron-neutral collision frequency
+    Inputs:
+        - ng: neutral density (1/m3)
+        - Te: electron temperature (eV)
+    Ouputs:
+        - Electron-neutral collision frequency (s)
+    '''
+    # Thermal velocity of electrons
+    vte = cp.thermal_velocity(TeV)
+    return 5e-19*ng*vte
 
-def nu_ei(n_e,T_e):
-    return 2.9E-12*n_e*coulombLog(n_e,T_e)/(T_e**(3/2))
-
-def nu_en(N_n,T_e):
-    return 5E-19*N_n*np.sqrt(e*T_e/me)
-
-def omega_p(n_e):
-    return np.sqrt(n_e*e**2/(eps0*me))
-
-def resistance(n_e,T_e,N_n):
-    return (L/(pi*r**2))/sigma_cond(n_e,T_e,N_n)
+def resistance(ne,TeV,ng,L,r):
+    
+    # Resistivity
+    eta = cp.nu_ei(ne,TeV) + nu_en(ng,TeV)
+    eta *= ne * cc.e**2 / cc.me
+    
+    # Resistance
+    R = L/(np.pi*r**2) * eta
+    
+    return R
 
 def J_e(n_e,T_e):
     return e*n_e*np.sqrt(e*T_e/(2*pi*me))
@@ -71,7 +100,6 @@ def ohmic_heating(n_e,T_e,N_n,I_d):
     return I_d**2*resistance(n_e,T_e,N_n)
 
 def power_balance(n_e,N_n,T_e,T_e_ins,I_d):
-    #print  ohmic_heating(n_e,T_e,N_n),ionization_loss(n_e,T_e,N_n),radiation_loss(n_e,T_e,N_n),convection_loss(T_e)
     return ohmic_heating(n_e,T_e,N_n,I_d)-ionization_loss(n_e,T_e,N_n)-radiation_loss(n_e,T_e,N_n)-convection_loss(T_e,T_e_ins,I_d)
 
 def ion_balance(n_e,T_e,N_n):
@@ -82,18 +110,18 @@ def flow_balance(n_e,N_n,T_e,F):
 
 def goal_function(x,args):
     # Unpack inputs
-    n_e=x[0]*1E21
-    T_e=x[1]
-    N_n=x[2]*1E22
+    ne = x[0]*1E21
+    Te = x[1]
+    ng = x[2]*1E22
     
     Id, mdot, Te_ins = args
     
     # Compute goal vector
     goal=np.zeros(3)
 
-    goal[0] = power_balance(n_e,N_n,T_e,T_e_ins,I_d)
-    goal[1]=ion_balance(n_e,T_e,N_n)   
-    goal[2]=flow_balance(n_e,N_n,T_e,F)
+    goal[0] = power_balance(ne, ng, Te, Te_ins, Id)
+    goal[1] = ion_balance(ne, Te, ng)   
+    goal[2] = flow_balance(ne, ng, Te, mdot)
     
     # Rescale goal vector
     goal[0] /= 1e6
