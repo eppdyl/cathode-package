@@ -290,6 +290,40 @@ def zerofun(x,T_e_ins,I_d,F):
     
     return goal
 
+def solve(do, Lo,
+          eps_i, eps_x, mass,
+          TeV_ins, TgV,
+          Id, mdot,
+          sig_iz=sig_iz_xe_mk, sig_ex=sig_ex_xe_mk,
+          convection='MK',
+          solver_tol = 1E-8,solver_out = False):
+    """
+    Solves for the electron and neutral densities and electron temperature in 
+    the orifice.
+    Uses:
+        - Mass conservation
+        - Charge conservation
+        - Plasma power balance
+
+    Inputs:
+        1. Geometry: orifice diameter "do" and orifice length "Lo" (m)
+        2. Gas: ionization potential "eps_i" (eV), excitation potential "eps_x"
+        (eV), particle mass "mass" (kg)
+        3. Emitter info: None
+        4. Experimental info: electron insert temperature "TeV_ins" (eV),
+        neutral gas temperature "TgV" (eV)
+        5. Operating conditions: discharge current "Id" (A), mass flow rate 
+        "mdot" (milli-eqA)
+        6. Necessary functions: ionization and excitaiton cross-sections 
+        "sig_iz" and "sig_ex" (m2). Defaults to the fits proposed by Mandell
+        and Katz for xenon.
+        7. Other: "convection" chooses either the Mandell and Katz convection
+        term without a factor of 5/2 ('MK') or the correct convection term with
+        the factor of 5/2 ('corrected')
+    """   
+    
+
+
 ### Operating condition
 Idvec = np.arange(1.,10.,0.1) # A
 mdotvec = np.array([1,6,10]) # sccm
