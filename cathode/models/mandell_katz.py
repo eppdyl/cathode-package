@@ -47,8 +47,8 @@ def sig_ex_xe_mk(TeV):
     Output:
         - Excitation cross section (m2)
     '''
-    eps_rad = 11.6 # Excitation energy (eV)
-    return 1.93e-19*np.exp(-eps_rad/TeV)/np.sqrt(TeV)
+    eps_x = 11.6 # Excitation energy (eV)
+    return 1.93e-19*np.exp(-eps_x/TeV)/np.sqrt(TeV)
 
 def nu_en(ng,TeV):
     '''
@@ -146,7 +146,7 @@ def ionization_loss(ne,TeV,ng,L,r,eps_i,sigma_iz):
     
     return il
 
-def excitation_loss(ne,TeV,ng,L,r,eps_r,sigma_ex):
+def excitation_loss(ne,TeV,ng,L,r,eps_x,sigma_ex):
     '''
     Function: excitation_loss
     Calculates the total amount of power spent in excitation.
@@ -155,7 +155,7 @@ def excitation_loss(ne,TeV,ng,L,r,eps_r,sigma_ex):
         - TeV: electron temperature (eV)
         - ng: neutral density (1/m3)
         - L,r: length and radius of plasma column (m)
-        - eps_r: excitation energy (eV)
+        - eps_x: excitation energy (eV)
         - sigma_iz: ionization cross-section function (m2)
     Outputs:
         - Exictation power loss (W)
@@ -165,7 +165,7 @@ def excitation_loss(ne,TeV,ng,L,r,eps_r,sigma_ex):
     sig_iz = 4*sigma_ex(TeV) # Cross-section term
     je = J_e(ne,TeV) # Electron current
     
-    il = eps_r * vol * sig_iz * je * ng
+    il = eps_x * vol * sig_iz * je * ng
     
     return il
 
@@ -207,11 +207,11 @@ def power_balance(ne,TeV,ng,args):
     Outputs:
         - Power balance (W)
     '''    
-    TeV_ins,Id,L,r,eps_i,eps_r,sigma_iz,sigma_ex,convection = args
+    TeV_ins,Id,L,r,eps_i,eps_x,sigma_iz,sigma_ex,convection = args
     
     oh = ohmic_heating(ne,TeV,ng,Id,L,r)
     il = ionization_loss(ne,TeV,ng,L,r,eps_i,sigma_iz)
-    rl = excitation_loss(ne,TeV,ng,L,r,eps_r,sigma_ex)
+    rl = excitation_loss(ne,TeV,ng,L,r,eps_x,sigma_ex)
     cl = convection_loss(TeV,TeV_ins,Id,convection)
     
     return oh-il-rl-cl
@@ -292,19 +292,23 @@ def flow_balance(ne,TeV,ng,args):
 def goal_function(x,args):
     # Unpack inputs
     ne = x[0]*1E21
-    Te = x[1]
+    TeV = x[1]
     ng = x[2]*1E22
     
     Id, mdot, Te_ins = args
     
-    # Compute goal vector
+    # Goal vector
     goal=np.zeros(3)
 
     # Create the argument list for each balance
+    args_pb = args['pb']
+    args_ib = args['ib']
+    args_fb = args['fb']
 
-    goal[0] = power_balance(ne, ng, Te, args)
-    goal[1] = ion_balance(ne, Te, ng)   
-    goal[2] = flow_balance(ne, ng, Te, mdot)
+    # Compute the balances
+    goal[0] = power_balance(ne,TeV,ng, args_pb)
+    goal[1] = ion_balance(ne,TeV,ng, args_ib)   
+    goal[2] = flow_balance(ne,TeV,ng, args_fb)
     
     # Rescale goal vector
     goal[0] /= 1e6
@@ -364,8 +368,20 @@ def solve(do, Lo,
                         'xtol':solver_tol,'ftol':solver_tol}
 
         # Arguments
-        args = [lId,lmdot,lTeV_ins]
+        ro = do/2
+       
+        args_pb = [lTeV_ins,lId,
+                   Lo,ro,
+                   eps_i,eps_x,
+                   sig_iz,sig_ex,
+                   convection]
+        args_ib = [Lo,ro,mass,sig_iz]
+        args_fb = [TgV,ro,mass,mdot]     
         
+        args = {}
+        args['pb'] = args_pb
+        args['ib'] = args_ib
+        args['fb'] = args_fb
         # Solve!
         optimize_results = root(goal_function,x0,args=args,
                                 method='lm',options = root_options)
