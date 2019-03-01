@@ -134,10 +134,10 @@ def ionization_loss(ne,TeV,ng,L,r,eps_i,sigma_iz):
     
     return il
 
-def radiation_loss(ne,TeV,ng,L,r,eps_r,sigma_ex):
+def excitation_loss(ne,TeV,ng,L,r,eps_r,sigma_ex):
     '''
     Function: ionization_loss
-    Calculates the total amount of power spent in ionization.
+    Calculates the total amount of power spent in excitation.
     Inputs:
         - ne: plasma density (1/m3)
         - TeV: electron temperature (eV)
@@ -146,7 +146,7 @@ def radiation_loss(ne,TeV,ng,L,r,eps_r,sigma_ex):
         - eps_r: excitation energy (eV)
         - sigma_iz: ionization cross-section function (m2)
     Outputs:
-        - Ionization power loss (W)
+        - Exictation power loss (W)
     '''
     vol = np.pi * r**2 * L # Volume 
     
@@ -157,15 +157,37 @@ def radiation_loss(ne,TeV,ng,L,r,eps_r,sigma_ex):
     
     return il
 
-def convection_loss(T_e,T_e_ins,I_d):
-    return I_d*(T_e-T_e_ins)
+def convection_loss(TeV,TeV_ins,Id,convection='MK'):
+    '''
+    Function: convection_loss
+    Calculates the total convection losses.
+    Inputs:
+        - TeV: electron temperature (eV)
+        - TeV_ins: insert electron temperature (eV)
+        - Id: discharge current (A)
+        - convection: a string describing either the original Mandell and Katz
+        equations ('MK') or a flag ('corrected') to use the correct value 
+        for the factor in front of the convection term (should be 5/2)
+    Outputs:
+        - Convection loss (W)
+    '''
+    ret = Id*(TeV-TeV_ins)
+    
+    if convection == 'MK':
+        fac = 1.0
+    elif convection == 'corrected':
+        fac = 5/2
+    else:
+        raise ValueError
+ 
+    return fac*ret
 
 
 
 def power_balance(n_e,N_n,T_e,T_e_ins,I_d):
     oh = ohmic_heating(n_e,T_e,N_n,I_d)
     il = ionization_loss(n_e,T_e,N_n)
-    rl = radiation_loss(n_e,T_e,N_n)
+    rl = excitation_loss(n_e,T_e,N_n)
     cl = convection_loss(T_e,T_e_ins,I_d)
     
     return oh-il-rl-cl
