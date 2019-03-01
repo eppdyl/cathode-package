@@ -106,6 +106,17 @@ def coulomb_log(ne,TeV,collision_type='ei'):
     elif collision_type == 'ee':
         return (23.5 - 0.5*np.log(1E-6*ne/(TeV**(5.0/2.0)))-np.sqrt(1E-5 + (np.log(TeV)-2.0)**2/16.0))
 
+def nu_ei(ne,TeV):
+    """
+    Returns the electron-ion collision frequency
+    Inputs:
+        - Electron number density (1/m^3)
+        - Electron temperature (eV)
+    Output:
+        - Collision frequency (s)
+    """
+    return 2.9e-12*ne*coulomb_log(ne,TeV)/TeV**(3/2)
+
 def electron_ion_collision_frequency():
     return NotImplemented
 
