@@ -78,7 +78,7 @@ def resistance(ne,TeV,ng,L,r):
     '''
     # Resistivity
     eta = cp.nu_ei(ne,TeV) + nu_en(ng,TeV)
-    eta *= ne * cc.e**2 / cc.me
+    eta *= cc.me / (ne * cc.e**2)
     
     # Resistance
     R = L/(np.pi*r**2) * eta
@@ -323,7 +323,7 @@ def solve(do, Lo,
           Id, mdot,
           sig_iz=sig_iz_xe_mk, sig_ex=sig_ex_xe_mk,
           convection='MK',
-          solver_tol = 1E-8,solver_out = False):
+          solver_tol = 1e-8,solver_out = False):
     """
     Solves for the electron and neutral densities and electron temperature in 
     the orifice.
@@ -340,7 +340,7 @@ def solve(do, Lo,
         4. Experimental info: electron insert temperature "TeV_ins" (eV),
         neutral gas temperature "TgV" (eV)
         5. Operating conditions: discharge current "Id" (A), mass flow rate 
-        "mdot" (milli-eqA)
+        "mdot" (sccm)
         6. Necessary functions: ionization and excitaiton cross-sections 
         "sig_iz" and "sig_ex" (m2). Defaults to the fits proposed by Mandell
         and Katz for xenon.
@@ -358,11 +358,20 @@ def solve(do, Lo,
     for lId,lmdot,lTeV_ins in cases:
         # Initial guess: densities are scaled
         ne0 = 1e21 # 1/m3
-        Te0 = 2 # eV
+        Te0 = 2.5 # eV
         ng0 = 1e22 # 1/m3
         
-        x0 = np.array([ne0*1e-21,Te0,ng0*1e-22])
-    
+        # M&K do not give their initial guesses and solver is very sensitive
+        # to I.V.
+        # TODO: Find a better solution here
+        if lmdot == 1:
+            x0 = np.array([1,2.5,1])
+        elif lmdot == 6:
+            x0 = np.array([2,1.8,2])
+        elif lmdot == 10:
+            x0 = np.array([0.5,1.7,1])
+        else:
+            x0 = np.array([ne0*1e-21,Te0,ng0*1e-22])
 
         root_options = {'maxiter':int(1e6),
                         'xtol':solver_tol,'ftol':solver_tol}
@@ -376,7 +385,7 @@ def solve(do, Lo,
                    sig_iz,sig_ex,
                    convection]
         args_ib = [Lo,ro,mass,sig_iz]
-        args_fb = [TgV,ro,mass,mdot]     
+        args_fb = [TgV,ro,mass,lmdot]     
         
         args = {}
         args['pb'] = args_pb
@@ -389,66 +398,10 @@ def solve(do, Lo,
         # Extract and rescale results
         ne,TeV,ng = optimize_results.x
         
-        rescaled_results = [ne*1e21,Te0,ng*1e22]
+        rescaled_results = [lId,lmdot,lTeV_ins,ne*1e21,TeV,ng*1e22]
         
         solvec.append(rescaled_results)        
+    
+    solvec = np.array(solvec)
 
-#### Operating condition
-#Idvec = np.arange(1.,10.,0.1) # A
-#mdotvec = np.array([1,6,10]) # sccm
-#
-#### Storage for all solutions
-## 3 mass flow rates
-## size(Idvec) currents
-## store ne,ng,Te,convergence
-#solvec = np.zeros([3,np.size(Idvec),4])
-#
-#
-##x0 = np.array([1,2.5,1])
-#x0vec = np.array( [ [1,2.5,1],[2,1.8,2],[0.5,1.7,1]])
-#TeInsvec = np.array([0.848866477452,0.779318325967,0.791571666652])
-#
-##mdot_idx = 0
-##Id_idx = 0
-##filename = 'mandell_solvec_mdot-'
-##for mdot in np.nditer(mdotvec):
-##		print mdot
-##		x0 = x0vec[mdot_idx]
-##		filename += str(mdot)
-##		Id_idx = 0
-##
-##		#T_e_ins = TeInsvec[mdot_idx]
-##		T_e_ins = 0.8
-##
-##		for Id in np.nditer(Idvec):
-##				data = (T_e_ins,Id,mdot) 
-##				optimize_results = root(zerofun,x0,data,method='lm',options={'maxiter':1000000,'xtol':1e-8,'ftol':1e-8})
-##				n_e,T_e,N_n = optimize_results.x
-##				n_e *= 1E21
-##				N_n *= 1E22
-##				solvec[mdot_idx,Id_idx,:] = [n_e,N_n,T_e,optimize_results.success]
-##				Id_idx += 1
-##
-##		np.save(filename,solvec[mdot_idx,:,:])
-##		mdot_idx += 1
-##		filename = 'mandell_solvec_mdot-'
-##
-##np.save('mandell_solvec-all',solvec)
-#x0 = np.array([1.0,1.6,1])
-#data = (T_e_ins,3.26,6)
-#optimize_results = root(zerofun,x0,data,method='lm',options={'maxiter':1000000,'xtol':1e-8,'ftol':1e-8})
-#n_e,T_e,N_n = optimize_results.x
-#n_e *= 1e21
-#N_n *= 1e22
-#print n_e,T_e,N_n
-#
-##ion_output = pi*r**2*J_i(n_e,T_e)
-##ion_eff = ion_output/(resistance(n_e,T_e,N_n)*I_d**2)
-##utilization = ion_output/(0.0718*F)
-##voltage_drop = resistance(n_e,T_e,N_n)*I_d
-#
-##print('Electron Density\tElectron Temperature\tNeutral Density')
-##print(str(n_e)+'\t'+str(T_e)+'\t\t'+str(N_n))
-##print('Orifice Vd\t\tIon Output\t\tIon Output/Power\tUtilitzation')
-##print(str(voltage_drop)+'\t\t'+str(ion_output)+'\t\t'+str(ion_eff)+'\t'+str(utilization))
-
+    return solvec
