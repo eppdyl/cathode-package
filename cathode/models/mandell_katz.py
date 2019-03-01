@@ -65,7 +65,17 @@ def nu_en(ng,TeV):
     return 5e-19*ng*vte
 
 def resistance(ne,TeV,ng,L,r):
-    
+    '''
+    Function: resistance
+    Calculate the resistance of a plasma column of length L and radius r
+    Inputs:
+        - ne: plasma density (1/m3)
+        - TeV: electron temperature (eV)
+        - ng: neutral density (1/m3)
+        - L,r: length and radius of plasma column (m)
+    Outputs:
+        - Resistance (Ohms)
+    '''
     # Resistivity
     eta = cp.nu_ei(ne,TeV) + nu_en(ng,TeV)
     eta *= ne * cc.e**2 / cc.me
@@ -75,32 +85,90 @@ def resistance(ne,TeV,ng,L,r):
     
     return R
 
-def J_e(n_e,T_e):
-    return e*n_e*np.sqrt(e*T_e/(2*pi*me))
+def ohmic_heating(ne,TeV,ng,Id,L,r):
+    '''
+    Function: ohmic_heating
+    Calculate the Ohmic heating power of a plasma column of length L and 
+    radius r
+    Inputs:
+        - ne: plasma density (1/m3)
+        - TeV: electron temperature (eV)
+        - ng: neutral density (1/m3)
+        - Id: discharge current (A)
+        - L,r: length and radius of plasma column (m)
+    Outputs:
+        - Ohmic heating power (W)
+    '''
+    R = resistance(ne,TeV,ng,L,r)
+    return R*Id**2
+
+def J_e(ne,TeV):
+    return cc.e*ne*np.sqrt(cc.e*TeV/(2*np.pi*cc.me))
 
 def J_i(n_e,T_e):
     return np.sqrt(me/M)*J_e(n_e,T_e)
 
-def ion_production(n_e,T_e,N_n):
-    return pi*r**2*L*4*sigma_iz(T_e)*J_e(n_e,T_e)*N_n
-
 def ion_loss(n_e,T_e):
     return 2*pi*r*(r+L)*J_i(n_e,T_e)
 
-def ionization_loss(n_e,T_e,N_n):
-    return E_i*ion_production(n_e,T_e,N_n)
+def ionization_loss(ne,TeV,ng,L,r,eps_i,sigma_iz):
+    '''
+    Function: ionization_loss
+    Calculates the total amount of power spent in ionization.
+    Inputs:
+        - ne: plasma density (1/m3)
+        - TeV: electron temperature (eV)
+        - ng: neutral density (1/m3)
+        - L,r: length and radius of plasma column (m)
+        - eps_i: ionization energy (eV)
+        - sigma_iz: ionization cross-section function (m2)
+    Outputs:
+        - Ionization power loss (W)
+    '''
+    vol = np.pi * r**2 * L # Volume 
+    
+    sig_iz = 4*sigma_iz(TeV) # Cross-section term
+    je = J_e(ne,TeV) # Electron current
+    
+    il = eps_i * vol * sig_iz * je * ng
+    
+    return il
 
-def radiation_loss(n_e,T_e,N_n):
-    return pi*r**2*L*E_rad*4*sigma_rad(T_e)*J_e(n_e,T_e)*N_n
+def radiation_loss(ne,TeV,ng,L,r,eps_r,sigma_ex):
+    '''
+    Function: ionization_loss
+    Calculates the total amount of power spent in ionization.
+    Inputs:
+        - ne: plasma density (1/m3)
+        - TeV: electron temperature (eV)
+        - ng: neutral density (1/m3)
+        - L,r: length and radius of plasma column (m)
+        - eps_r: excitation energy (eV)
+        - sigma_iz: ionization cross-section function (m2)
+    Outputs:
+        - Ionization power loss (W)
+    '''
+    vol = np.pi * r**2 * L # Volume 
+    
+    sig_iz = 4*sigma_ex(TeV) # Cross-section term
+    je = J_e(ne,TeV) # Electron current
+    
+    il = eps_r * vol * sig_iz * je * ng
+    
+    return il
 
 def convection_loss(T_e,T_e_ins,I_d):
     return I_d*(T_e-T_e_ins)
 
-def ohmic_heating(n_e,T_e,N_n,I_d):
-    return I_d**2*resistance(n_e,T_e,N_n)
+
 
 def power_balance(n_e,N_n,T_e,T_e_ins,I_d):
-    return ohmic_heating(n_e,T_e,N_n,I_d)-ionization_loss(n_e,T_e,N_n)-radiation_loss(n_e,T_e,N_n)-convection_loss(T_e,T_e_ins,I_d)
+    oh = ohmic_heating(n_e,T_e,N_n,I_d)
+    il = ionization_loss(n_e,T_e,N_n)
+    rl = radiation_loss(n_e,T_e,N_n)
+    cl = convection_loss(T_e,T_e_ins,I_d)
+    
+    return oh-il-rl-cl
 
 def ion_balance(n_e,T_e,N_n):
     return ion_production(n_e,T_e,N_n)-ion_loss(n_e,T_e)
