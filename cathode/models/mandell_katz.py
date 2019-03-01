@@ -195,7 +195,19 @@ def convection_loss(TeV,TeV_ins,Id,convection='MK'):
     return fac*ret
 
 def power_balance(ne,TeV,ng,args):
-    
+    '''
+    Function: power_balance
+    Difference of power input to and output from the plasma volume. Should be
+    zero (input = output.)
+    Inputs:
+        - ne: plasma density (1/m3)
+        - TeV: electron temperature (eV)
+        - ng: neutral density (1/m3)
+        - args: list of arguments necessary for the subfunctions called
+    Outputs:
+        - Power balance (W)
+    '''    
+    TeV_ins,Id,L,r,eps_i,eps_r,sigma_iz,sigma_ex,convection = args
     
     oh = ohmic_heating(ne,TeV,ng,Id,L,r)
     il = ionization_loss(ne,TeV,ng,L,r,eps_i,sigma_iz)
@@ -209,23 +221,62 @@ def J_i(ne,TeV,M):
     return np.sqrt(cc.me/M)*J_e(ne,TeV)
 
 def ion_loss(ne,TeV,L,r,M):
+    '''
+    Function: ion_loss
+    Total loss of ions to the walls and inflow/outflow
+    Inputs:
+        - ne: plasma density (1/m3)
+        - TeV: electron temperature (eV)
+        - L,r: length and radius of plasma column (m)
+        - M: mass of an ion (kg)
+    Outputs:
+        - Total ion loss (1/s)
+    '''   
     Aeff = 2*np.pi*r*(r+L)
     ji = J_i(ne,TeV,M)
     
     return Aeff * ji
 
-def ion_balance(n_e,T_e,N_n):
+def ion_balance(ne,TeV,ng,args):
+    '''
+    Function: ion_balance
+    Difference of ion production and loss. Should be zero (creation=loss)
+    Inputs:
+        - ne: plasma density (1/m3)
+        - TeV: electron temperature (eV)
+        - ng: neutral density (1/m3)
+        - args: list of arguments necessary for the subfunctions called
+    Outputs:
+        - Ion species balance (1/s)
+    '''  
+    L,r,M,sigma_iz = args
+    
     ip = ion_production(ne,TeV,ng,L,r,sigma_iz)
     il = ion_loss(ne,TeV,L,r,M)
     
     return ip-il
 
-def flow_balance(n_e,N_n,T_e,F):
+def flow_balance(ne,TeV,ng,args):
+    '''
+    Function: flow_balance
+    Difference of "charge flow rate" between inlet and outlets of the orifice.
+    Should be zero (what comes in = what comes out)
+    Inputs:
+        - ne: plasma density (1/m3)
+        - TeV: electron temperature (eV)
+        - ng: neutral density (1/m3)
+        - args: list of arguments necessary for the subfunctions called
+    Outputs:
+        - "Charge" flow rate balance (C/s = A)
+    '''   
+    
+    TgV,r,M,mdot = args
+    
     mdot_A = mdot * cc.sccm2eqA # Flow rate (eq-A)
     Ao = np.pi*r**2 # Orifice area (m2)
     
     # Neutral particle flux (A)
-    gam_g = cs.e * ng * np.sqrt(cs.e*TgV/(2*np.pi*M))
+    gam_g = cc.e * ng * np.sqrt(cc.e*TgV/(2*np.pi*M))
     gam_g *= Ao
     
     # Ion flux (A)
@@ -248,6 +299,8 @@ def goal_function(x,args):
     
     # Compute goal vector
     goal=np.zeros(3)
+
+    # Create the argument list for each balance
 
     goal[0] = power_balance(ne, ng, Te, args)
     goal[1] = ion_balance(ne, Te, ng)   
