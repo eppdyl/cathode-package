@@ -105,11 +105,26 @@ def ohmic_heating(ne,TeV,ng,Id,L,r):
 def J_e(ne,TeV):
     return cc.e*ne*np.sqrt(cc.e*TeV/(2*np.pi*cc.me))
 
-def J_i(n_e,T_e):
-    return np.sqrt(me/M)*J_e(n_e,T_e)
-
-def ion_loss(n_e,T_e):
-    return 2*pi*r*(r+L)*J_i(n_e,T_e)
+def ion_production(ne,TeV,ng,L,r,sigma_iz):
+    '''
+    Function: ion_production
+    Calculate the total amount of ions produced in the volume by direct-impact
+    ionization.
+    Inputs:
+        - ne: plasma density (1/m3)
+        - TeV: electron temperature (eV)
+        - ng: neutral density (1/m3)
+        - L,r: length and radius of plasma column (m)
+        - sigma_iz: ionization cross-section function (m2)
+    Outputs:
+        - Ion production (1/s)
+    '''
+    vol = np.pi * r**2 * L # Volume 
+    
+    sig_iz = 4*sigma_iz(TeV) # Cross-section term
+    je = J_e(ne,TeV) # Electron current   
+    
+    return vol * sig_iz * je * ng
 
 def ionization_loss(ne,TeV,ng,L,r,eps_i,sigma_iz):
     '''
@@ -125,18 +140,15 @@ def ionization_loss(ne,TeV,ng,L,r,eps_i,sigma_iz):
     Outputs:
         - Ionization power loss (W)
     '''
-    vol = np.pi * r**2 * L # Volume 
+    ip = ion_production(ne,TeV,ng,L,r,sigma_iz)
     
-    sig_iz = 4*sigma_iz(TeV) # Cross-section term
-    je = J_e(ne,TeV) # Electron current
-    
-    il = eps_i * vol * sig_iz * je * ng
+    il = eps_i * ip
     
     return il
 
 def excitation_loss(ne,TeV,ng,L,r,eps_r,sigma_ex):
     '''
-    Function: ionization_loss
+    Function: excitation_loss
     Calculates the total amount of power spent in excitation.
     Inputs:
         - ne: plasma density (1/m3)
@@ -182,21 +194,49 @@ def convection_loss(TeV,TeV_ins,Id,convection='MK'):
  
     return fac*ret
 
-
-
-def power_balance(n_e,N_n,T_e,T_e_ins,I_d):
-    oh = ohmic_heating(n_e,T_e,N_n,I_d)
-    il = ionization_loss(n_e,T_e,N_n)
-    rl = excitation_loss(n_e,T_e,N_n)
-    cl = convection_loss(T_e,T_e_ins,I_d)
+def power_balance(ne,TeV,ng,args):
+    
+    
+    oh = ohmic_heating(ne,TeV,ng,Id,L,r)
+    il = ionization_loss(ne,TeV,ng,L,r,eps_i,sigma_iz)
+    rl = excitation_loss(ne,TeV,ng,L,r,eps_r,sigma_ex)
+    cl = convection_loss(TeV,TeV_ins,Id,convection)
     
     return oh-il-rl-cl
 
+
+def J_i(ne,TeV,M):
+    return np.sqrt(cc.me/M)*J_e(ne,TeV)
+
+def ion_loss(ne,TeV,L,r,M):
+    Aeff = 2*np.pi*r*(r+L)
+    ji = J_i(ne,TeV,M)
+    
+    return Aeff * ji
+
 def ion_balance(n_e,T_e,N_n):
-    return ion_production(n_e,T_e,N_n)-ion_loss(n_e,T_e)
+    ip = ion_production(ne,TeV,ng,L,r,sigma_iz)
+    il = ion_loss(ne,TeV,L,r,M)
+    
+    return ip-il
 
 def flow_balance(n_e,N_n,T_e,F):
-    return pi*r**2*e*N_n*np.sqrt(e*T_n/(2*pi*M))-(0.0718*F-pi*r**2*J_i(n_e,T_e))
+    mdot_A = mdot * cc.sccm2eqA # Flow rate (eq-A)
+    Ao = np.pi*r**2 # Orifice area (m2)
+    
+    # Neutral particle flux (A)
+    gam_g = cs.e * ng * np.sqrt(cs.e*TgV/(2*np.pi*M))
+    gam_g *= Ao
+    
+    # Ion flux (A)
+    gam_i = J_i(ne,TeV,M)
+    gam_i *= Ao
+    
+    # Balance
+    ret = gam_g + gam_i
+    ret -= mdot_A
+    
+    return ret
 
 def goal_function(x,args):
     # Unpack inputs
@@ -209,7 +249,7 @@ def goal_function(x,args):
     # Compute goal vector
     goal=np.zeros(3)
 
-    goal[0] = power_balance(ne, ng, Te, Te_ins, Id)
+    goal[0] = power_balance(ne, ng, Te, args)
     goal[1] = ion_balance(ne, Te, ng)   
     goal[2] = flow_balance(ne, ng, Te, mdot)
     
