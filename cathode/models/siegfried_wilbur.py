@@ -211,7 +211,7 @@ def solve(cathode_diameter,
             
             # Initial guess: densities and temperature are scaled
             if X0 is None:
-                Tc0 = 1200 + 273.15 # Wall temperature, K
+                Tc0 = 1000 + 273.15 # Wall temperature, K
                 ne0 = 2.5e20 # Electron density, 1/m3
                 nc0 = 1./(kb*Tc0)*(lP - ne0*kb*(TeV*q/kb + Tc0)) # Neutral density 
                 # from perfect gas law, 1/m3
