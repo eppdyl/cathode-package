@@ -107,8 +107,11 @@ def goal_function(X,args):
     As = 2*Ac + Ae
 
     # Power loss per unit length (W/m)
-    qth_val = qth(Tc-273.15) # W/mm
-    qth_val = qth_val*1e3 # W/m
+    # Function signature:
+    # - Tc: wall temperature (K)
+    # - Leff: emission length (m)
+    # - dc: emitter diameter (m)
+    qth_val = qth(Tc,Leff,dc) # W/m
     
     # Ion Current density, ion current
     ji = q*ne*np.sqrt(q*TeV/mass)
