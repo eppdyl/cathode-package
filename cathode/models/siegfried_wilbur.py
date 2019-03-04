@@ -111,7 +111,7 @@ def goal_function(X,args):
     # - Tc: wall temperature (K)
     # - Leff: emission length (m)
     # - dc: emitter diameter (m)
-    qth_val = qth(Tc,Leff,dc) # W/m
+    qth_val = qth(Tc,Leff,dc) # W
     
     # Ion Current density, ion current
     ji = q*ne*np.sqrt(q*TeV/mass)
@@ -129,7 +129,7 @@ def goal_function(X,args):
 
     # Insert surface power balance
     goal[2] = ji*Ae*(phi_p + eps_i - phi_wf) 
-    goal[2] -= qth_val * Leff 
+    goal[2] -= qth_val 
     goal[2] -= Ie*phi_eff(ne,phi_p,TeV,phi_wf)
 
     # Plasma power balance
@@ -161,6 +161,7 @@ def solve(cathode_diameter,
           eps_i, mass,
           phi_wf, DRD,
           TeV, 
+          X0 = None,
           P = None, mdot = None, orifice_diameter = None,
           Id = None, Pfunc = sw_pressure_correlation,
           lambda_pr = hg_lambda_pr, qth = None,
@@ -204,17 +205,25 @@ def solve(cathode_diameter,
             cases = product(Id,mdot)
         
         solvec = []
+        idx = 0
         for lId,lmdot in cases:
             lP = Pfunc(lmdot,lId,orifice_diameter,mass)
             
             # Initial guess: densities and temperature are scaled
-            Tc0 = 1050 + 273.15 # Wall temperature, K
-            ne0 = 1.5e20 # Electron density, 1/m3
-            nc0 = 1./(kb*Tc0)*(lP - ne0*kb*(TeV*q/kb + Tc0)) # Neutral density 
-            # from perfect gas law, 1/m3
-            phi_p0 = 7 # Plasma potential, V
-            
-            x0 = [ne0*1e-20,nc0*1e-20,phi_p0,Tc0*1e-3]
+            if X0 is None:
+                Tc0 = 1200 + 273.15 # Wall temperature, K
+                ne0 = 2.5e20 # Electron density, 1/m3
+                nc0 = 1./(kb*Tc0)*(lP - ne0*kb*(TeV*q/kb + Tc0)) # Neutral density 
+                # from perfect gas law, 1/m3
+                phi_p0 = 7 # Plasma potential, V
+                
+                x0 = [ne0*1e-20,nc0*1e-20,phi_p0,Tc0*1e-3]
+            else:
+                ne0 = X0[0][idx]
+                nc0 = X0[1][idx]
+                phi_p0 = X0[2][idx]
+                Tc0 = X0[3][idx]
+                x0 = [ne0,nc0,phi_p0,Tc0] 
     
             # Optimizer options
             root_options = {'maxiter':int(1e6),
@@ -234,5 +243,7 @@ def solve(cathode_diameter,
             rescaled_results = [ne*1e20,nc*1e20,phi_p,Tc*1e3-273.15]
             
             solvec.append(rescaled_results)
+            
+            idx = idx + 1
             
     return np.array(solvec)
