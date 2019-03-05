@@ -23,6 +23,8 @@ import numpy as np
 from scipy.optimize import root
 from itertools import product
 
+NUNK = 4 # Number of unknowns
+
 def hg_lambda_pr(ne,ng,phi_p):
     """
      Function: hg_lambda_pr
@@ -95,7 +97,7 @@ def goal_function(X,args):
     goal = np.zeros(4)
     
     # Unpack arguments    
-    dc, eps_i, mass, phi_wf, DRD, TeV, P, Id, lambda_pr, qth = args
+    dc, eps_i, mass, phi_wf, DRD, TeV, P, Id, lambda_pr, qth, weights = args
     
     # Effective length, areas
     rc = dc/2
@@ -135,6 +137,9 @@ def goal_function(X,args):
     # Plasma power balance
     goal[3] = phi_p*Ie - eps_i * Ii - 5/2*TeV*Id
 
+    for g,w in zip(goal,weights):
+        g *= w
+
     return goal
 
 def sw_pressure_correlation(mdot,Id,orifice_diameter,mass):
@@ -165,7 +170,8 @@ def solve(cathode_diameter,
           P = None, mdot = None, orifice_diameter = None,
           Id = None, Pfunc = sw_pressure_correlation,
           lambda_pr = hg_lambda_pr, qth = None,
-          solver_tol = 1E-8,solver_out = False):
+          solver_tol = 1E-8,solver_out = False,
+          weights = np.ones(NUNK)):
     """
     Solves for the electron and neutral densities, plasma potential, and
     neutral gas temperature. Uses:
@@ -231,7 +237,11 @@ def solve(cathode_diameter,
 
             # Arguments
             dc = cathode_diameter
-            args = [dc, eps_i, mass, phi_wf, DRD, TeV, lP, lId, lambda_pr, qth]
+            args = [dc, 
+                    eps_i, mass, 
+                    phi_wf, DRD, 
+                    TeV, lP, lId, 
+                    lambda_pr, qth, weights]
             
             # Solve!
             optimize_results = root(goal_function,x0,args=args,
