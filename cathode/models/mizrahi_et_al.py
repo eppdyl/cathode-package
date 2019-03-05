@@ -11,49 +11,24 @@ Plasma Parameters During Hollow Cathodes Operation," Journal of Propulsion and
 Power, 28(5), 1134–1137, 2012.
 
 """
-from __future__ import division # Because reasons.
 import numpy as np
-from scipy.optimize import fsolve,root
-import matplotlib.pyplot as plt
-import scipy.constants as cs
-from cathode.physics import charge_exchange_xsec 
-from cathode.models.flow import viscosity
-from cathode.constants import eV2Kelvin
+from scipy.optimize import root
 
+import cathode.constants as cc
 
-### Constants
-cm = cs.centi
-angstrom = 1E-10
-e = cs.elementary_charge
-me = cs.electron_mass
-kB = cs.k
-pi = np.pi
-eps0 = cs.epsilon_0
+#from cathode.physics import charge_exchange_xsec 
+#from cathode.models.flow import viscosity
+#from cathode.constants import eV2Kelvin
 
-### Cathode info: Siegfried and Wilbur 
-r = 0.076*cm/2.
-L = 0.18*cm
+#### Experimental data
+#T_i = 0.4 # Ion temperature, eV
+#T_e_ins = 0.8 # Insert electron temp., eV
+#delta = 0.2 # Free parameter, ratio of neutral density downstream to upstream
+#beta = (1.-delta)/(1.+delta)
+##xi = 1.7e-4 # Viscosity, Pa.s
+#xi = viscosity(0.4*eV2Kelvin,units='Pa-s') # Viscosity, Pa.s
 
-### Operating conditions
-# Defined below
-
-### Gas info
-E_i = 12.2
-E_rad = 10.0
-T_n = 0.4
-M = cs.u*131.293 # Mass of Xe, kg
-
-### Experimental data
-T_i = 0.4 # Ion temperature, eV
-T_e_ins = 0.8 # Insert electron temp., eV
-delta = 0.2 # Free parameter, ratio of neutral density downstream to upstream
-beta = (1.-delta)/(1.+delta)
-#xi = 1.7e-4 # Viscosity, Pa.s
-xi = viscosity(0.4*eV2Kelvin,units='Pa-s') # Viscosity, Pa.s
-
-print xi
-
-sigma_cex = charge_exchange_xsec(T_i,'Xe') 
+#sigma_cex = charge_exchange_xsec(T_i,'Xe') 
 
 ### Cross sections
 def sigma_iz(T_e):
@@ -143,12 +118,14 @@ def flow_balance(n_e,N_n,T_e,F):
 		ug = average_vel(N_n)
 		return F*7.43583e-10*131.293-M*pi*r**2.*(N_n + n_e)*ug
 
-def zerofun(x,T_e_ins,I_d,F):
-		n_e=x[0]*1E21
-		T_e=x[1]
-		N_n=x[2]*1E22
 
-		#print n_e,N_n,T_e
+
+
+#def zerofun(x,T_e_ins,I_d,F):
+def goal_function(x,args):
+		ne = x[0]*1E21
+		TeV = x[1]
+		ng = x[2]*1E22
 
 		goal=np.zeros(3)
 		goal[0]=power_balance(n_e,N_n,T_e,T_e_ins,I_d)
@@ -163,41 +140,51 @@ def zerofun_teins(x,ne0,Nn0,Te0,I_d):
 		return goal
 
 
-### Operating condition
-mdot = 92e-3 /7.174486e-2 
-Idvec = np.arange(1.,5.01,0.1)  
+def solve(do, Lo,
+          eps_i, eps_x, mass,
+          TeV_ins, TgV,
+          Id, mdot,
+          delta,
+          sig_iz=sig_iz_xe, sig_ex = sig_ex_xe, sig_cex = sig_cex_xe,
+          nu_en = nu_en_xe, mu = mu_xe,
+          solver_tol = 1e-8,solver_out = False):
+    print("Test")
 
-### Storage for all solutions
-# 1 mass flow rates
-# size(Idvec) currents
-# store ne,ng,Te,convergence
-solvec = np.zeros(np.size(Idvec))
-solvec.resize((np.size(Idvec),4))
-
-### Actual solving
-# Scaling
-# - ne / 1e21
-# - Te / 1
-# - nc / 1e22
-x0 = np.array([1,2.5,1])
-
-Id_idx = 0
-for Id in np.nditer(Idvec):
-    print Id
-    data = (T_e_ins,Id,mdot) 
-    optimize_results = root(zerofun,x0,data,method='lm',options={'maxiter':100000,'xtol':1e-8,'ftol':1e-8})
-    n_e,T_e,N_n = optimize_results.x
-    n_e *= 1E21
-    N_n *= 1E22
-    solvec[Id_idx,:] = [n_e,N_n,T_e,optimize_results.success]
-    Id_idx += 1
-
-
-alpha = solvec[:,0]/(solvec[:,0] + solvec[:,1]) * 100
-
-
-print solvec
-
-np.save('mizrahi_sw-cathode',solvec)
+#### Operating condition
+#mdot = 92e-3 /7.174486e-2 
+#Idvec = np.arange(1.,5.01,0.1)  
+#
+#### Storage for all solutions
+## 1 mass flow rates
+## size(Idvec) currents
+## store ne,ng,Te,convergence
+#solvec = np.zeros(np.size(Idvec))
+#solvec.resize((np.size(Idvec),4))
+#
+#### Actual solving
+## Scaling
+## - ne / 1e21
+## - Te / 1
+## - nc / 1e22
+#x0 = np.array([1,2.5,1])
+#
+#Id_idx = 0
+#for Id in np.nditer(Idvec):
+#    print Id
+#    data = (T_e_ins,Id,mdot) 
+#    optimize_results = root(zerofun,x0,data,method='lm',options={'maxiter':100000,'xtol':1e-8,'ftol':1e-8})
+#    n_e,T_e,N_n = optimize_results.x
+#    n_e *= 1E21
+#    N_n *= 1E22
+#    solvec[Id_idx,:] = [n_e,N_n,T_e,optimize_results.success]
+#    Id_idx += 1
+#
+#
+#alpha = solvec[:,0]/(solvec[:,0] + solvec[:,1]) * 100
+#
+#
+#print solvec
+#
+#np.save('mizrahi_sw-cathode',solvec)
 
 
