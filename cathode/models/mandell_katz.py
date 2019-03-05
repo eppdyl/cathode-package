@@ -162,10 +162,10 @@ def excitation_loss(ne,TeV,ng,L,r,eps_x,sigma_ex):
     '''
     vol = np.pi * r**2 * L # Volume 
     
-    sig_iz = 4*sigma_ex(TeV) # Cross-section term
+    sig_ex = 4*sigma_ex(TeV) # Cross-section term
     je = J_e(ne,TeV) # Electron current
     
-    il = eps_x * vol * sig_iz * je * ng
+    il = eps_x * vol * sig_ex * je * ng
     
     return il
 
