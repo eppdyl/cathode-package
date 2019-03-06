@@ -34,29 +34,27 @@ import cathode.constants as cc
 ###############################################################################
 #                             Cross Section Fits
 ###############################################################################
-
-@np.vectorize
-def charge_exchange_xsec(TiV, species='Xe'):
+def charge_exchange(TiV, species='Xe'):
     """
     Returns charge exchange cross section for the specified species in m^2 for
     the specified ION temperature in eV.
     Applies only to ion - neutral collisions.
     Inputs:
-        Ion temperature/energy in eV
-        Ion/Neutral species (e.g. 'Xe')
+        - TiV: Ion temperature/energy (eV)
+        - species: Ion/Neutral species (e.g. 'Xe')
     Outputs:
-        charge exchange xsec m^2
+        - Cross section (m2)
 
     References:
     - Xenon: Miller, J. S., et al, "Xenon charge exchange cross sections for
-    electrostatic thruster models", Journal of Applied Physics, 91(3), 984–991,
-    2002.  https://doi.org/10.1063/1.1426246
+      electrostatic thruster models", Journal of Applied Physics, 91(3), 984–991
+      2002.  https://doi.org/10.1063/1.1426246
     - Krypton: Hause M. L., et al. "Krypton charge exchange cross sections for
-    Hall effect thruster models," Journal of Applied Physics, 113(16), 2013.
-    https://doi.org/10.1063/1.48024322013
+      Hall effect thruster models," Journal of Applied Physics, 113(16), 2013.
+      https://doi.org/10.1063/1.48024322013
     - Argon and nitrogen: Nichols, B. J. and Witteborn, F. C., "Measurements of
-    Resonant Charge Exchange Cross Sections in Nitrogen and Argon between 0.5
-    and 17 eV,"  NASA TN-3625, 1966.
+      Resonant Charge Exchange Cross Sections in Nitrogen and Argon between 0.5
+      and 17 eV,"  NASA TN-3625, 1966.
     """
     # Fit constants
     consts = {
@@ -83,27 +81,41 @@ def charge_exchange_xsec(TiV, species='Xe'):
 
     return ret
 
-
 def goebel_electron_neutral_xsec(TeV):
-    """ 
+    """
     Electron-neutral collision cross-section from Goebel's textbook.
     VALID ONLY FOR XENON
-    
-    Inputs: Electron temperature in eV
-    Output: cross section in m^2
+
+    Inputs:
+    - TeV: Electron temperature (eV) 
+    Output: 
+    - Cross section (m2) 
     """
     return (6.6E-19)*(((TeV/4.0)-0.1)/(1.0+(TeV/4.0)**(1.6)))
 
-def goebel_ionization_xsec(TeV):
+def ionization_xe_mk(TeV):
     """
-    Electron-impact ionization cross-section from Goebel's textbook.
-    VALID ONLY FOR XENON
-    
-    Inputs: Electron temperature in eV
-    Output: cross section in m^2
-    """
-    return (1.0E-20)*((3.97+0.643*TeV-0.0368*TeV**2)*np.exp(-12.127/TeV))
+    Electron-impact ionization cross-section. Valid only for xenon! Initially
+    proposed by Mandell and Katz and resused thereafter (see e.g. Goebel and
+    Katz textbook).
 
+    Inputs:
+    - TeV: Electron temperature (eV)
+    Output:
+    - Cross section (m2)
+
+    References:
+    - Mandell, M. J. and Katz, I., "Theory of Hollow Cathode Operation in Spot
+      and Plume Modes," 30th AIAA/ASME/SAE/ASEE Joint Propulsion Conference &
+      Exhibit, 1994.
+    - Goebel, D. M. and Katz, I., "Fundamentals of Electric Propulsion,"
+      Appendix D p.475, John Wiley and Sons, 2008.
+    """
+    ret = (3.97+0.643*TeV-0.0368*TeV**2)
+    ret *= np.exp(-12.127/TeV)
+    ret *= cc.angstrom**2
+
+    return ret
 ###############################################################################
 #                           Cross Section Import
 ###############################################################################
