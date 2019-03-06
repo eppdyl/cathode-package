@@ -127,18 +127,12 @@ def goal_function(x,args):
 		TeV = x[1]
 		ng = x[2]*1E22
 
-		goal=np.zeros(3)
-		goal[0]=power_balance(n_e,N_n,T_e,T_e_ins,I_d)
-		goal[1]=ion_balance(n_e,T_e,N_n)
-		goal[2]=flow_balance(n_e,N_n,T_e,F)
+		goal = np.zeros(3)
+		goal[0] = power_balance(n_e,N_n,T_e,T_e_ins,I_d)
+		goal[1] = ion_balance(n_e,T_e,N_n)
+		goal[2] = flow_balance(n_e,N_n,T_e,F)
 
 		return goal
-
-### Solve for T_e_ins
-def zerofun_teins(x,ne0,Nn0,Te0,I_d):
-		goal = power_balance(ne0,Nn0,Te0,x,I_d)
-		return goal
-
 
 def solve(do, Lo,
           eps_i, eps_x, mass,
