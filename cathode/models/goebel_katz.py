@@ -27,95 +27,68 @@
 Created on Tue Jun 6 17:21 2017
 cathode.models.goebel_katz
 Defines the model equations and solution procedure for Goebel and Katz's 0D
-hollow cathode model described in 
-Fundamentals of Electric Propulsion: Hall and Ion Thrusters (2008)
+hollow cathode model described in "Fundamentals of Electric Propulsion: Hall 
+and Ion Thrusters" (2008)
 
 """
 import cathode.constants as cc
 import cathode.physics as cp
 import cathode.models.flow as flow
+import cathode.collisions.cross_section as xsec
+import cathode.collisions.frequency as nu
+
 import numpy as np
 from scipy.optimize import fsolve #,root
-from scipy.special import jn 
+from scipy.special import jn
 
 @np.vectorize
-def ambipolar_diffusion_model(cathode_radius,neutral_density,TiV,species='Xe'):
+def ambipolar_diffusion_model(rc, ng, TiV, species='Xe'):
     """
     Implementation of Goebel's ambipolar diffusion model used for determination
-    of the orifice- or insert-region plasma electron temperature based on the 
-    cathode geometry, neutral density and ion temperature (usually taken to be 
+    of the orifice- or insert-region plasma electron temperature based on the
+    cathode geometry, neutral density and ion temperature (usually taken to be
     some constant value 2-4x the insert temperature).
     Inputs:
-        cathode radius, m
-        neutral density, #/m^3
-        ion temperature, eV
+        - rc: cathode radius (m)
+        - ng: neutral density (#/m^3)
+        - TiV: ion temperature  (eV)
     Optional Input:
-        species, defaults to 'Xe'
+        - species, defaults to 'Xe'
             -NOTE: currently only works for xenon
     Output:
-        electron temperature, eV
+        Electron temperature (eV)
     """
     #NOTE: THIS SECTION WILL CURRENTLY ONLY WORK FOR XENON!!
-    lhs = lambda TeV: ((cathode_radius/cc.BesselJ01)**2*(neutral_density*
-                       cp.goebel_ionization_xsec(TeV)*
-                       cp.mean_velocity(TeV,'e')))
-    
-    rhs = lambda TeV: ((cc.e/cc.M.species(species))*(TiV+TeV)/
-                       (neutral_density*
-                        cp.charge_exchange_xsec(TiV,species)*
-                        np.sqrt(cc.e*TiV/cc.M.species(species))))
-    
+    lhs = lambda TeV: (rc/cc.BesselJ01)**2 * (ng * xsec.ionization_xe_mk(TeV) *
+                                              cp.mean_velocity(TeV, 'e'))
+
+    rhs = lambda TeV: ((cc.e/cc.M.species(species)) * (TiV+TeV) /
+                       (ng * xsec.charge_exchange(TiV, species) *
+                        cp.thermal_velocity(TiV, species)))
+
     goal = lambda x: lhs(x) - rhs(x)
-    
-    electron_temperature = fsolve(goal,x0=5.0)
-    
-    return electron_temperature
+
+    TeV = fsolve(goal, x0=5.0)
+
+    return TeV
 
 @np.vectorize
-def electron_ion_collision_frequency(ne,TeV):
-    """
-    Returns the plasma electron-ion collision frequency as expressed in the 
-    NRL Plasma Formulary.
-    Inputs:
-        electron number density, #/m^3
-        electron temperature, eV
-    Output:
-        electron-ion collision frequency, 1/s
-    """
-    return 2.9E-12 * ne * TeV**(-3/2) * cp.coulomb_log(ne,TeV,'ei')
-
-@np.vectorize
-def electron_neutral_collision_frequency(neutral_density,TeV,species='Xe'):
-    """
-    Returns the electron-neutral collision frequency using the fits given 
-    in Goebel's textbook.
-    Inputs:
-        neutral number density, #/m^3
-        electron temperature, eV
-    Optional Input:
-        species string, defaults to Xenon (only works for Xenon right now)
-    Output:
-        electron-neutral collision frequency, 1/s
-    """
-    return cp.goebel_electron_neutral_xsec(TeV)*neutral_density*cp.mean_velocity(TeV,'e')
-
-@np.vectorize
-def resistivity(ne,neutral_density,TeV):
+def resistivity(ne, ng, TeV):
     """
     Returns the plasma resistivity, \eta, as a function of plasma density,
     neutral density, and electron temperature.
     Inputs:
-        plasma density, #/m^3
-        neutral gas density, #/m^3
-        electron temperature, eV
+        - ne: plasma density (#/m^3)
+        - ng: neutral gas density (#/m^3)
+        - TeV: electron temperature (eV)
     Output:
         plasma resistivity, Ohm-m
     """
     return (electron_ion_collision_frequency(ne,TeV)+
             electron_neutral_collision_frequency(neutral_density,TeV))/(
             cc.epsilon0*cp.plasma_frequency(ne,'e')**2)
-    
-    
+
+
 def thermionic_current_density(Tw,phi_wf,D=cc.A0):
     """
     Returns the thermionic electron emission current density as defined by the
