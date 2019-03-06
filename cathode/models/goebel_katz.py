@@ -84,9 +84,13 @@ def resistivity(ne, ng, TeV):
     Output:
         plasma resistivity, Ohm-m
     """
-    return (electron_ion_collision_frequency(ne,TeV)+
-            electron_neutral_collision_frequency(neutral_density,TeV))/(
-            cc.epsilon0*cp.plasma_frequency(ne,'e')**2)
+    nu_ei = nu.nu_ei(ne, TeV)
+    nu_en = nu.nu_en_xe_mk(ng, TeV) # Use the variable cross section
+    nu_m = nu_ei + nu_en
+
+    ret = cc.me / (ne * cc.e**2) * nu_m
+
+    return ret
 
 
 def thermionic_current_density(Tw,phi_wf,D=cc.A0):
