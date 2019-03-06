@@ -1,0 +1,244 @@
+# "cathode" Python package
+# Version: 1.0
+# A package of various cathode models that have been published throughout the
+# years. Associated publication:
+# Wordingham, C. J., Taunay, P.-Y. C. R., and Choueiri, E. Y., "A critical
+# review of hollow cathode modeling: 0-D models," Journal of Propulsion and
+# Power, in preparation.
+#
+# Copyright (C) 2019 Christopher J. Wordingham and Pierre-Yves C. R. Taunay
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https:/www.gnu.org/licenses/>.
+#
+# Contact info: https:/github.com/pytaunay
+#
+
+"""
+This submodule contains functions related to the computation of collision
+cross-sections.
+"""
+###############################################################################
+#                             Cross Section Fits
+###############################################################################
+
+@np.vectorize
+def charge_exchange_xsec(TiV, species='Xe'):
+    """
+    Returns charge exchange cross section for the specified species in m^2 for 
+    the specified ION temperature in eV.
+    Applies only to ion - neutral collisions.
+    Inputs:
+        Ion temperature/energy in eV
+        Ion/Neutral species (e.g. 'Xe')
+    Outputs:
+        charge exchange xsec m^2
+
+    Ref: Miller et al. 2002 (Xe)
+          Hause et al. 2013 (Kr)
+          Nichols and Witteborn 1966 (Ar,N2)
+    """
+    consts={
+            'Xe':[87.3,13.6],
+            'Xe2+':[45.7,8.9],
+            'Ar':[7.49,0.73],
+            'N2':[6.48,0.24],
+            'Kr':[80.7,14.7],
+            'Kr2+':[44.6,9.8]}
+    
+    A,B = consts[species]
+    
+    #special case for Argon and N2 fits:
+    if species == 'Ar' or species == 'N2':
+        return (A*cc.angstrom - B*cc.angstrom*np.log(TiV))**2
+    else:
+        return (A - B*np.log(TiV))*cc.angstrom**2
+
+
+def goebel_electron_neutral_xsec(TeV):
+    """ 
+    Electron-neutral collision cross-section from Goebel's textbook.
+    VALID ONLY FOR XENON
+    
+    Inputs: Electron temperature in eV
+    Output: cross section in m^2
+    """
+    return (6.6E-19)*(((TeV/4.0)-0.1)/(1.0+(TeV/4.0)**(1.6)))
+
+def goebel_ionization_xsec(TeV):
+    """
+    Electron-impact ionization cross-section from Goebel's textbook.
+    VALID ONLY FOR XENON
+    
+    Inputs: Electron temperature in eV
+    Output: cross section in m^2
+    """
+    return (1.0E-20)*((3.97+0.643*TeV-0.0368*TeV**2)*np.exp(-12.127/TeV))
+
+###############################################################################
+#                           Cross Section Import
+###############################################################################
+
+class CrossSection:
+    """
+    Callable cross section spline object.  Constructor stores the minimum and
+    maximum energies for the spline data, the scaling to multiply by (in case 
+    the data is scaled prior to fitting), and the spline fit object itself.
+    CrossSection objects can be added to one another to produce lumped cross 
+    sections and can be called using function syntax at an energy in eV.
+    """
+    
+    def __init__(self,Emin,Emax,scaling,spline):
+        #create empty arrays for each parameter
+        self.Emins = np.array([])
+        self.Emaxs = np.array([])
+        self.scalings = np.array([])
+        self.splines = np.array([])
+        
+        self.Emins = np.append(self.Emins,Emin)
+        self.Emaxs = np.append(self.Emaxs,Emax)
+        self.scalings = np.append(self.scalings,scaling)
+        self.splines = np.append(self.splines,spline)
+        
+    def __add__(self,other):
+        if type(other) == CrossSection:
+            return CrossSection(np.append(self.Emins,other.Emins),
+                                np.append(self.Emaxs,other.Emaxs),
+                                np.append(self.scalings,other.scalings),
+                                np.append(self.splines,other.splines))
+        else:
+            print("Error: cannot add CrossSection to different data type")
+            return None
+
+    def __call__(self,value):
+        return np.sum((1.0*(value>=Emin))*(1.0*(value<=Emax))*scaling*splev(value,self.splines[3*i:3*i+3])
+                      for Emin,Emax,scaling,i in zip(
+                              self.Emins,self.Emaxs,self.scalings,range(len(self.splines)//3)))
+
+
+def _fetch_data(lines,match_index):
+    """Private helper function for cross section creation"""
+    separator = re.compile('-{5,}\n')
+    
+    #join all lines following match index
+    bulk = ''.join(lines[match_index:])
+    
+    #split at separators, data is 1st grouping after match
+    #split again for import to numpy
+    data = re.split(separator,bulk)[1]        
+    data = np.loadtxt(re.split('\n',data))
+    print('\tImported level: '+str(data[0,0])+' eV')
+    Emin = data[0,0]
+    Emax = data[-1,0]
+    
+    #rescale and spline data
+    _scaling = np.max(data[:,1])
+    data[:,1] = data[:,1]/_scaling
+    
+    _spline = splrep(data[:,0],data[:,1])
+    
+    return CrossSection(Emin,Emax,_scaling,_spline)
+
+
+def create_cross_section_spline(filename,xsec_type,chosen=None):
+    """
+    Finds the string associated with xsec_type in filename and extracts the
+    numeric cross-section data following it.
+    If multiple matches are found, user is prompted to select one or all of them.
+    ALL combines the cross sections into a lumped value by splining each individually
+    and then comibining to make a lumped spline.
+    
+    Inputs: 
+            filename of lxcat data
+            cross-section type (e.g. any of these: 'IONIZATION','Excitation','elastic')
+    Optional Inputs:
+            chosen (number corresponding to selected cross section or 'ALL')
+    Output: 
+            spline representation function
+    """
+    with open(filename,'r') as f:
+        lines = f.readlines()
+        
+    if xsec_type.upper() not in ['EXCITATION','IONIZATION','ELASTIC','EFFECTIVE']:
+        print('Must select a valid cross section type.')
+        return None
+        
+    pattern = re.compile(xsec_type.upper())
+    match_num = 0
+    matches = {}
+    
+    #find each possible match and print a description
+    for index,line in enumerate(lines):
+        if re.match(pattern,line):
+            match_num += 1
+            print(str(match_num)+'.')
+            print(lines[index+4].strip())
+            print(lines[index+6].strip() + '\n')
+            matches[match_num]=index
+    
+    #If no matches, print warning and return None      
+    if len(matches)==0:
+        print("WARNING: No Cross Section match found.")
+        return None
+    
+    #If only a single match, import it directly
+    elif len(matches)==1:
+        print("Importing data...")
+        return _fetch_data(lines,matches[1])
+    
+    else:
+        print("Multiple matches found.")
+        ########################## Input loop #################################
+        failure = True
+        while failure:
+            if not chosen:
+                chosen = input("Select cross section to import: (or enter ALL to lump)\n").upper()
+        
+            if chosen=='ALL':
+                print("Importing and lumping all cross sections...")
+                failure = False
+            
+            else:
+                #Make sure the input number is valid
+                try:
+                    chosen = int(chosen)
+                    
+                    if (chosen not in matches.keys()):
+                        raise ValueError
+                        
+                    failure = False
+                    print("Importing cross section No." + str(chosen))
+                    
+                except ValueError:
+                    chosen = None
+                    print("Please enter a cross section number or ALL.")
+        #######################################################################
+        
+        #If a single cross section was selected, import it and return
+        if chosen!='ALL':
+            return _fetch_data(lines,matches[chosen])
+        #If ALL was selected, import each spline, then sum to lump
+        else:
+            splines={}
+            for m in matches.keys():
+                splines[m]=_fetch_data(lines,matches[m])
+                #create empty cross section object
+                out = CrossSection([],[],[],[])
+                
+                #sum over all retrieved cross sections
+                for sp in splines.values():
+                    out += sp
+            
+            return out
+
+
