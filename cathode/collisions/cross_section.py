@@ -117,6 +117,28 @@ def ionization_xe_mk(TeV):
 
     return ret
 
+def excitation_xe_mk(TeV):
+    """
+    Radiative excitation cross-section for xenon. Initially proposed by Mandell
+    and Katz and resused thereafter (see e.g. Goebel and Katz' textbook)
+    Valid only for xenon.
+
+    Inputs:
+    - TeV: Electron temperature (eV)
+    Output:
+    - Cross section (m2)
+
+    References:
+    - Mandell, M. J. and Katz, I., "Theory of Hollow Cathode Operation in Spot
+      and Plume Modes," 30th AIAA/ASME/SAE/ASEE Joint Propulsion Conference &
+      Exhibit, 1994.
+    - Goebel, D. M. and Katz, I., "Fundamentals of Electric Propulsion,"
+      Appendix D p.475, John Wiley and Sons, 2008.
+    """
+    ret = 1.93e-19 * np.sqrt(TeV) * np.exp(-11.6 / TeV)
+
+    return ret
+
 
 ###############################################################################
 #                           Cross Section Import
