@@ -58,6 +58,8 @@ def nu_en_mk(ng, TeV):
     Ouputs:
         - Electron-neutral collision frequency (s)
     """
+    ### TODO: CHANGE THIS TO CALL THE CROSS SECTION AS OPPOSED TO USING NU_EN
+    ### DIRECTLY
     # Thermal velocity of electrons
     vte = cp.thermal_velocity(TeV)
     return 5e-19*ng*vte
