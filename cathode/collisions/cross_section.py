@@ -28,9 +28,9 @@
 This submodule contains functions related to the computation of collision
 cross-sections.
 """
-import numpy as np
 import re
-from scipy.interpolate import splev
+import numpy as np
+from scipy.interpolate import splev, splrep
 
 import cathode.constants as cc
 
@@ -241,22 +241,22 @@ def _fetch_data(lines, match_index):
 
     # Join all lines following match index
     bulk = ''.join(lines[match_index:])
-    
-    #split at separators, data is 1st grouping after match
-    #split again for import to numpy
-    data = re.split(separator,bulk)[1]        
-    data = np.loadtxt(re.split('\n',data))
-    print('\tImported level: '+str(data[0,0])+' eV')
-    Emin = data[0,0]
-    Emax = data[-1,0]
-    
-    #rescale and spline data
-    _scaling = np.max(data[:,1])
-    data[:,1] = data[:,1]/_scaling
-    
-    _spline = splrep(data[:,0],data[:,1])
-    
-    return CrossSection(Emin,Emax,_scaling,_spline)
+
+    # Split at separators, data is 1st grouping after match
+    # Split again for import to numpy
+    data = re.split(separator, bulk)[1]
+    data = np.loadtxt(re.split('\n', data))
+    print('\tImported level: '+str(data[0, 0])+' eV')
+    emin = data[0, 0]
+    emax = data[-1, 0]
+
+    # Rescale and spline data
+    _scaling = np.max(data[:, 1])
+    data[:, 1] = data[:, 1]/_scaling
+
+    _spline = splrep(data[:, 0], data[:, 1])
+
+    return CrossSection(emin, emax, _scaling, _spline)
 
 
 def create_cross_section_spline(filename,xsec_type,chosen=None):
