@@ -30,6 +30,7 @@ frequencies
 """
 
 import cathode.physics as cp
+import cathode.collisions.cross_section as xsec
 
 def nu_ei(ne, TeV):
     """
@@ -44,22 +45,37 @@ def nu_ei(ne, TeV):
     """
     return 2.9e-12*ne*cp.coulomb_log(ne, TeV)/TeV**(3/2)
 
-def nu_en_mk(ng, TeV):
+def nu_en_xe_mk(ng, TeV, xsec_type='variable'):
     """
-    Function: nu_en
     Mandell and Katz' expression for the electron-neutral collision frequency
-    Reference:
+    of xenon. Can either use the simple collision cross section (constant) or
+    the variable one.
+
+    Inputs:
+    - ng: neutral density (1/m3)
+    - TeV: electron temperature (eV)
+    - xsec_type: The type of cross section model to use. Can either be
+      "constant" or "variable". If "variable" uses the model from year 1999 and
+      above. Otherwise uses a set value of 5 10^{-19} m2.
+
+    Ouputs:
+    - Electron-neutral collision frequency (s)
+
+    References:
     - Mandell, M. J. and Katz, I., "Theory of Hollow Cathode Operation in Spot
     and Plume Modes," 30th AIAA/ASME/SAE/ASEE Joint Propulsion Conference &
     Exhibit, 1994.
-    Inputs:
-        - ng: neutral density (1/m3)
-        - Te: electron temperature (eV)
-    Ouputs:
-        - Electron-neutral collision frequency (s)
+    - Katz, I., et al, "Sensitivity of Hollow Cathode Performance to Design and
+      Operating Parameters," 35th AIAA/ASME/SAE/ASEE Joint Propulsion Conference
+      & Exhibit, 1999. http://arc.aiaa.org/doi/pdf/10.2514/6.1999-2576
+    - Goebel, D. M. and Katz, I., "Fundamentals of Electric Propulsion,"
+      Appendix D p.475, John Wiley and Sons, 2008.
     """
-    ### TODO: CHANGE THIS TO CALL THE CROSS SECTION AS OPPOSED TO USING NU_EN
-    ### DIRECTLY
     # Thermal velocity of electrons
     vte = cp.thermal_velocity(TeV)
-    return 5e-19*ng*vte
+    # Cross section
+    en_xsec = xsec.electron_neutral_xe_mk(TeV, xsec_type)
+    # Collision freq.
+    nu_en = ng * en_xsec * vte
+
+    return nu_en
