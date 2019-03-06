@@ -259,95 +259,98 @@ def _fetch_data(lines, match_index):
     return CrossSection(emin, emax, _scaling, _spline)
 
 
-def create_cross_section_spline(filename,xsec_type,chosen=None):
+def create_cross_section_spline(filename, xsec_type, chosen=None):
     """
     Finds the string associated with xsec_type in filename and extracts the
     numeric cross-section data following it.
-    If multiple matches are found, user is prompted to select one or all of them.
-    ALL combines the cross sections into a lumped value by splining each individually
-    and then comibining to make a lumped spline.
-    
-    Inputs: 
+    If multiple matches are found, user is prompted to select one or all of
+    them.
+    ALL combines the cross sections into a lumped value by splining each
+    individually and then comibining to make a lumped spline.
+
+    Inputs:
             filename of lxcat data
             cross-section type (e.g. any of these: 'IONIZATION','Excitation','elastic')
     Optional Inputs:
             chosen (number corresponding to selected cross section or 'ALL')
-    Output: 
+    Output:
             spline representation function
     """
-    with open(filename,'r') as f:
+    with open(filename, 'r') as f:
         lines = f.readlines()
-        
-    if xsec_type.upper() not in ['EXCITATION','IONIZATION','ELASTIC','EFFECTIVE']:
-        print('Must select a valid cross section type.')
+
+    _valid_types = ['EXCITATION', 'IONIZATION', 'ELASTIC', 'EFFECTIVE']
+    if xsec_type.upper() not in _valid_types:
+        print('ERROR --- Must select a valid cross section type.')
         return None
-        
+
     pattern = re.compile(xsec_type.upper())
     match_num = 0
     matches = {}
-    
-    #find each possible match and print a description
-    for index,line in enumerate(lines):
-        if re.match(pattern,line):
+
+    # Find each possible match and print a description
+    for index, line in enumerate(lines):
+        if re.match(pattern, line):
             match_num += 1
             print(str(match_num)+'.')
             print(lines[index+4].strip())
             print(lines[index+6].strip() + '\n')
-            matches[match_num]=index
-    
-    #If no matches, print warning and return None      
-    if len(matches)==0:
-        print("WARNING: No Cross Section match found.")
+            matches[match_num] = index
+
+    # If no matches, print warning and return None
+    # Note: an empty list tests "False"
+    if not matches:
+        print("WARNING --- No Cross Section match found.")
         return None
-    
-    #If only a single match, import it directly
-    elif len(matches)==1:
+
+    # If only a single match, import it directly
+    elif len(matches) == 1:
         print("Importing data...")
-        return _fetch_data(lines,matches[1])
-    
+        return _fetch_data(lines, matches[1])
+
     else:
         print("Multiple matches found.")
         ########################## Input loop #################################
         failure = True
         while failure:
             if not chosen:
-                chosen = input("Select cross section to import: (or enter ALL to lump)\n").upper()
-        
-            if chosen=='ALL':
+                input_txt = "Select cross section to import "
+                input_txt += "(or enter ALL to lump)\n"
+                chosen = input(input_txt).upper()
+
+            if chosen == 'ALL':
                 print("Importing and lumping all cross sections...")
                 failure = False
-            
+
             else:
                 #Make sure the input number is valid
                 try:
                     chosen = int(chosen)
-                    
-                    if (chosen not in matches.keys()):
+
+                    if chosen not in matches.keys():
                         raise ValueError
-                        
+
                     failure = False
                     print("Importing cross section No." + str(chosen))
-                    
+
                 except ValueError:
                     chosen = None
                     print("Please enter a cross section number or ALL.")
         #######################################################################
-        
+
         #If a single cross section was selected, import it and return
-        if chosen!='ALL':
-            return _fetch_data(lines,matches[chosen])
+        if chosen != 'ALL':
+            return _fetch_data(lines, matches[chosen])
         #If ALL was selected, import each spline, then sum to lump
         else:
-            splines={}
+            splines = {}
             for m in matches.keys():
-                splines[m]=_fetch_data(lines,matches[m])
+                splines[m] = _fetch_data(lines, matches[m])
                 #create empty cross section object
-                out = CrossSection([],[],[],[])
-                
+                out = CrossSection([], [], [], [])
+
                 #sum over all retrieved cross sections
                 for sp in splines.values():
                     out += sp
-            
+
             return out
-
-
