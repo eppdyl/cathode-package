@@ -95,9 +95,9 @@ def goebel_electron_neutral_xsec(TeV):
 
 def ionization_xe_mk(TeV):
     """
-    Electron-impact ionization cross-section. Valid only for xenon! Initially
-    proposed by Mandell and Katz and resused thereafter (see e.g. Goebel and
-    Katz textbook).
+    Electron-impact ionization cross-section for xenon. Initially proposed by
+    Mandell and Katz and resused thereafter (see e.g. Goebel and Katz' textbook)
+    Valid only for xenon and electron temperatures less than 5 eV.
 
     Inputs:
     - TeV: Electron temperature (eV)
@@ -116,6 +116,8 @@ def ionization_xe_mk(TeV):
     ret *= cc.angstrom**2
 
     return ret
+
+
 ###############################################################################
 #                           Cross Section Import
 ###############################################################################
