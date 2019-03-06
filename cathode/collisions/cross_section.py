@@ -29,6 +29,9 @@ This submodule contains functions related to the computation of collision
 cross-sections.
 """
 import numpy as np
+import re
+from scipy.interpolate import splev
+
 import cathode.constants as cc
 
 ###############################################################################
@@ -167,49 +170,76 @@ def electron_neutral_xe_mk(TeV,xsec_type='variable'):
 ###############################################################################
 #                           Cross Section Import
 ###############################################################################
-
 class CrossSection:
     """
-    Callable cross section spline object.  Constructor stores the minimum and
-    maximum energies for the spline data, the scaling to multiply by (in case 
+    Callable cross section spline object. Constructor stores the minimum and
+    maximum energies for the spline data, the scaling to multiply by (in case
     the data is scaled prior to fitting), and the spline fit object itself.
-    CrossSection objects can be added to one another to produce lumped cross 
+    CrossSection objects can be added to one another to produce lumped cross
     sections and can be called using function syntax at an energy in eV.
     """
-    
-    def __init__(self,Emin,Emax,scaling,spline):
-        #create empty arrays for each parameter
-        self.Emins = np.array([])
-        self.Emaxs = np.array([])
-        self.scalings = np.array([])
-        self.splines = np.array([])
-        
-        self.Emins = np.append(self.Emins,Emin)
-        self.Emaxs = np.append(self.Emaxs,Emax)
-        self.scalings = np.append(self.scalings,scaling)
-        self.splines = np.append(self.splines,spline)
-        
-    def __add__(self,other):
-        if type(other) == CrossSection:
-            return CrossSection(np.append(self.Emins,other.Emins),
-                                np.append(self.Emaxs,other.Emaxs),
-                                np.append(self.scalings,other.scalings),
-                                np.append(self.splines,other.splines))
+
+    def __init__(self, Emin, Emax, scaling, spline):
+        # Create empty arrays for each parameter
+        self.__emins = np.array([])
+        self.__emaxs = np.array([])
+        self.__scalings = np.array([])
+        self.__splines = np.array([])
+
+        # Fill with inputs
+        self.__emins = np.append(self.__emins, Emin)
+        self.__emaxs = np.append(self.__emaxs, Emax)
+        self.__scalings = np.append(self.__scalings, scaling)
+        self.__splines = np.append(self.__splines, spline)
+
+    def __add__(self, other):
+        if isinstance(other, CrossSection):
+            return CrossSection(np.append(self.__emins,other.emins),
+                                np.append(self.__emaxs,other.emaxs),
+                                np.append(self.__scalings,other.scalings),
+                                np.append(self.__splines,other.splines))
         else:
-            print("Error: cannot add CrossSection to different data type")
+            print("ERROR --- cannot add CrossSection to different data type")
             return None
 
-    def __call__(self,value):
-        return np.sum((1.0*(value>=Emin))*(1.0*(value<=Emax))*scaling*splev(value,self.splines[3*i:3*i+3])
-                      for Emin,Emax,scaling,i in zip(
-                              self.Emins,self.Emaxs,self.scalings,range(len(self.splines)//3)))
+    def __call__(self, value):
+        zvec = zip(self.__emins, self.__emaxs, self.__scalings,
+                   range(len(self.__splines)//3))
+
+        # Accumulator
+        acc = 0.0
+        for emin, emax, scaling, i in zvec:
+            # Spline value
+            spl_value = splev(value, self.__splines[3*i:3*i+3])
+
+            # Boolean to restrict range
+            bcond = (value >= emin) * (value <= emax)
+
+            # Accumulate
+            acc += bcond * scaling * spl_value
+
+        return acc
+
+    ### Getters
+    @property
+    def emins(self):
+        return self.__emins
+    @property
+    def emaxs(self):
+        return self.__emaxs
+    @property
+    def scalings(self):
+        return self.__scalings
+    @property
+    def splines(self):
+        return self.__splines
 
 
-def _fetch_data(lines,match_index):
+def _fetch_data(lines, match_index):
     """Private helper function for cross section creation"""
     separator = re.compile('-{5,}\n')
-    
-    #join all lines following match index
+
+    # Join all lines following match index
     bulk = ''.join(lines[match_index:])
     
     #split at separators, data is 1st grouping after match
