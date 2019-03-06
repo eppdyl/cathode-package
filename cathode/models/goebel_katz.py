@@ -176,34 +176,46 @@ def zerofun(x,args):
 def sheath_voltage(Id,TeV,phi_wf,length,diameter,ne,neutral_density,h_loss=heat_loss()):
     return ((h_loss/Id) + 2.5*TeV + phi_wf - Id*plasma_resistance(length,diameter,ne,neutral_density,TeV))
 
-def average_plasma_density_model(Id,TeV,phi_wf,length,diameter,ne,neutral_density,plasma_potential,E_iz,h_loss=heat_loss()):
-    
-    phi_s = sheath_voltage(Id,TeV,phi_wf,length,diameter,ne,neutral_density,h_loss)
-    Rp = plasma_resistance(length,diameter,ne,neutral_density,TeV)
-    f_n = np.exp(-(plasma_potential-phi_s)/TeV) #edge-to-average ratio as defined by Goebel
-    #f_n = neutral_density*cp.goebel_ionization_xsec(TeV)*cp.mean_velocity(TeV,'e')*diameter/(4*np.sqrt(cc.e*TeV/cc.M.species('Xe')))
-    
-    A_emit = length*cc.pi*diameter
-    V_emit = length*cc.pi*diameter**2/4.0
-    
-    ne_bar = (Rp*Id**2 - 2.5*TeV*Id + phi_s*Id)/(
-            cc.e*f_n*TeV*np.sqrt(cc.e*TeV/(2*cc.pi*cc.me))*A_emit*np.exp(-phi_s/TeV)+
-            cc.e*neutral_density*V_emit*(E_iz+phi_s)*cp.goebel_ionization_xsec(TeV)*
-            cp.mean_velocity(TeV,'e'))
-    
-    return ne_bar,phi_s
+def average_plasma_density_model(Id, TeV, phi_wf, L, d, ne, ng,
+                                 phi_p, eps_i, h_loss=heat_loss()):
+
+    phi_s = sheath_voltage(Id, TeV, phi_wf, L, d, ne, ng, h_loss)
+    Rp = plasma_resistance(L, d, ne, ng, TeV)
+    f_n = np.exp(-(phi_p-phi_s)/TeV) #edge-to-average ratio as defined by Goebel
+
+    Aemit = L*cc.pi*d
+    Vemit = L*cc.pi*d**2/4
+
+    ### Calculate average plasma density
+    # Numerator
+    num = (Rp*Id**2 - 5/2*TeV*Id + phi_s*Id)
+
+    # Denominator
+    vte = cp.mean_velocity(TeV, species='e')
+
+    t1 = 1/4 * cc.e *f_n * TeV * vte
+    t1 *= Aemit * np.exp(-phi_s/TeV)
+
+    t2 = cc.e *ng * Vemit * (eps_i + phi_s)*xsec.ionization_xe_mk(TeV) * vte
+
+    den = t1 + t2
+
+    # Results
+    ne_bar = num/den
+
+    return ne_bar, phi_s
 
 def orifice_plasma_density_model(Id,TeV,TeV_insert,length,diameter,ne,neutral_density,E_iz):
-    
+
     Rp = plasma_resistance(length,diameter,ne,neutral_density,TeV)
     #print(Rp)
     V_ori = cc.pi*diameter**2*length/4.0
     #print(Id**2*Rp)
     #print(2.5*(TeV-TeV_insert)*Id)
-    
+
     return ((Id**2*Rp - 2.5*Id*(TeV-TeV_insert))/(cc.e*neutral_density*
-           cp.goebel_ionization_xsec(TeV)*cp.mean_velocity(TeV,'e')*E_iz*V_ori))
-    
+           xsec.ionization_xe_mk(TeV)*cp.mean_velocity(TeV,'e')*E_iz*V_ori))
+
 
 def approx_solve(Id,orifice_length,orifice_diameter,
                  insert_length,insert_diameter,flow_rate_sccm,Tgas,P_outlet,
