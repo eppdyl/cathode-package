@@ -43,3 +43,21 @@ def nu_ei(ne, TeV):
         - Collision frequency (s)
     """
     return 2.9e-12*ne*cp.coulomb_log(ne, TeV)/TeV**(3/2)
+
+def nu_en_mk(ng, TeV):
+    """
+    Function: nu_en
+    Mandell and Katz' expression for the electron-neutral collision frequency
+    Reference:
+    - Mandell, M. J. and Katz, I., "Theory of Hollow Cathode Operation in Spot
+    and Plume Modes," 30th AIAA/ASME/SAE/ASEE Joint Propulsion Conference &
+    Exhibit, 1994.
+    Inputs:
+        - ng: neutral density (1/m3)
+        - Te: electron temperature (eV)
+    Ouputs:
+        - Electron-neutral collision frequency (s)
+    """
+    # Thermal velocity of electrons
+    vte = cp.thermal_velocity(TeV)
+    return 5e-19*ng*vte

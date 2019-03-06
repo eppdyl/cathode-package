@@ -50,20 +50,6 @@ def sig_ex_xe_mk(TeV):
     eps_x = 11.6 # Excitation energy (eV)
     return 1.93e-19*np.exp(-eps_x/TeV)/np.sqrt(TeV)
 
-def nu_en(ng,TeV):
-    '''
-    Function: nu_en
-    Mandell and Katz' expression for the electron-neutral collision frequency
-    Inputs:
-        - ng: neutral density (1/m3)
-        - Te: electron temperature (eV)
-    Ouputs:
-        - Electron-neutral collision frequency (s)
-    '''
-    # Thermal velocity of electrons
-    vte = cp.thermal_velocity(TeV)
-    return 5e-19*ng*vte
-
 def resistance(ne,TeV,ng,L,r):
     '''
     Function: resistance
