@@ -28,6 +28,9 @@
 This submodule contains functions related to the computation of collision
 cross-sections.
 """
+import numpy as np
+import cathode.constants as cc
+
 ###############################################################################
 #                             Cross Section Fits
 ###############################################################################
@@ -35,7 +38,7 @@ cross-sections.
 @np.vectorize
 def charge_exchange_xsec(TiV, species='Xe'):
     """
-    Returns charge exchange cross section for the specified species in m^2 for 
+    Returns charge exchange cross section for the specified species in m^2 for
     the specified ION temperature in eV.
     Applies only to ion - neutral collisions.
     Inputs:
@@ -44,25 +47,41 @@ def charge_exchange_xsec(TiV, species='Xe'):
     Outputs:
         charge exchange xsec m^2
 
-    Ref: Miller et al. 2002 (Xe)
-          Hause et al. 2013 (Kr)
-          Nichols and Witteborn 1966 (Ar,N2)
+    References:
+    - Xenon: Miller, J. S., et al, "Xenon charge exchange cross sections for
+    electrostatic thruster models", Journal of Applied Physics, 91(3), 984–991,
+    2002.  https://doi.org/10.1063/1.1426246
+    - Krypton: Hause M. L., et al. "Krypton charge exchange cross sections for
+    Hall effect thruster models," Journal of Applied Physics, 113(16), 2013.
+    https://doi.org/10.1063/1.48024322013
+    - Argon and nitrogen: Nichols, B. J. and Witteborn, F. C., "Measurements of
+    Resonant Charge Exchange Cross Sections in Nitrogen and Argon between 0.5
+    and 17 eV,"  NASA TN-3625, 1966.
     """
-    consts={
-            'Xe':[87.3,13.6],
-            'Xe2+':[45.7,8.9],
-            'Ar':[7.49,0.73],
-            'N2':[6.48,0.24],
-            'Kr':[80.7,14.7],
-            'Kr2+':[44.6,9.8]}
-    
-    A,B = consts[species]
-    
-    #special case for Argon and N2 fits:
+    # Fit constants
+    consts = {
+        'Xe':[87.3, 13.6],
+        'Xe2+':[45.7, 8.9],
+        'Ar':[7.49, 0.73],
+        'N2':[6.48, 0.24],
+        'Kr':[80.7, 14.7],
+        'Kr2+':[44.6, 9.8]}
+
+    try:
+        A, B = consts[species]
+    except LookupError:
+        msg = "ERROR ---"
+        msg += "Charge-exchange cross sections: valid inputs are "
+        msg += "'Xe', 'Xe2+', 'Ar', 'N2', 'Kr', or 'Kr2+'"
+        print(msg)
+
+    # Special case for Argon and N2 fits:
     if species == 'Ar' or species == 'N2':
-        return (A*cc.angstrom - B*cc.angstrom*np.log(TiV))**2
+        ret = (A*cc.angstrom - B*cc.angstrom*np.log(TiV))**2
     else:
-        return (A - B*np.log(TiV))*cc.angstrom**2
+        ret = (A - B*np.log(TiV))*cc.angstrom**2
+
+    return ret
 
 
 def goebel_electron_neutral_xsec(TeV):
