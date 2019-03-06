@@ -81,22 +81,10 @@ def charge_exchange(TiV, species='Xe'):
 
     return ret
 
-def goebel_electron_neutral_xsec(TeV):
-    """
-    Electron-neutral collision cross-section from Goebel's textbook.
-    VALID ONLY FOR XENON
-
-    Inputs:
-    - TeV: Electron temperature (eV) 
-    Output: 
-    - Cross section (m2) 
-    """
-    return (6.6E-19)*(((TeV/4.0)-0.1)/(1.0+(TeV/4.0)**(1.6)))
-
 def ionization_xe_mk(TeV):
     """
     Electron-impact ionization cross-section for xenon. Initially proposed by
-    Mandell and Katz and resused thereafter (see e.g. Goebel and Katz' textbook)
+    Mandell and Katz and reused thereafter (see e.g. Goebel and Katz' textbook)
     Valid only for xenon and electron temperatures less than 5 eV.
 
     Inputs:
@@ -120,7 +108,7 @@ def ionization_xe_mk(TeV):
 def excitation_xe_mk(TeV):
     """
     Radiative excitation cross-section for xenon. Initially proposed by Mandell
-    and Katz and resused thereafter (see e.g. Goebel and Katz' textbook)
+    and Katz and reused thereafter (see e.g. Goebel and Katz' textbook)
     Valid only for xenon.
 
     Inputs:
@@ -139,6 +127,42 @@ def excitation_xe_mk(TeV):
 
     return ret
 
+def electron_neutral_xe_mk(TeV,xsec_type='variable'):
+    """
+    Electron-neutral cross-section for xenon. Initially proposed by Mandell and
+    Katz, and reused thereafter (see e.g. Goebel and Katz' textbook). It is an
+    improvement over the proposed model from 1994 which uses a constant cross
+    section. Valid only for xenon.
+
+    Inputs:
+    - TeV: Electron temperature (eV)
+    - xsec_type: The type of cross section model to use. Can either be
+      "constant" or "variable". If "variable" uses the model from year 1999 and
+      above. Otherwise uses a set value of 5 10^{-19} m2.
+    Output:
+    - Cross section (m2)
+
+    References:
+    - Mandell, M. J. and Katz, I., "Theory of Hollow Cathode Operation in Spot
+      and Plume Modes," 30th AIAA/ASME/SAE/ASEE Joint Propulsion Conference &
+      Exhibit, 1994.
+    - Katz, I., et al, "Sensitivity of Hollow Cathode Performance to Design and
+      Operating Parameters," 35th AIAA/ASME/SAE/ASEE Joint Propulsion Conference
+      & Exhibit, 1999. http://arc.aiaa.org/doi/pdf/10.2514/6.1999-2576
+    - Goebel, D. M. and Katz, I., "Fundamentals of Electric Propulsion,"
+      Appendix D p.475, John Wiley and Sons, 2008.
+    """
+
+    if xsec_type == 'constant':
+        ret = 5e-19
+    elif xsec_type == 'variable':
+        num = (TeV/4)-0.1
+        den = 1 + (TeV/4)**(1.6)
+        ret = 6.6e-19 * num/den
+    else:
+        raise ValueError
+
+    return ret
 
 ###############################################################################
 #                           Cross Section Import
