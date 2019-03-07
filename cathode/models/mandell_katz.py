@@ -26,30 +26,6 @@ import numpy as np
 
 from scipy.optimize import root
 
-def sig_iz_xe_mk(TeV):
-    '''
-    Function: sig_iz_xe_mk
-    Mandell and Katz' fit for the ionization cross section of xenon
-    Input:
-        - Te: electron temperature (eV)
-    Output:
-        - Ionization cross section (m2)
-    '''
-    eps_i = 12.127 # Ionization energy (eV)
-    return (3.97+0.643*TeV-0.0368*TeV**2)*np.exp(-eps_i/TeV)*cc.angstrom**2
-
-def sig_ex_xe_mk(TeV):
-    '''
-    Function: sig_ex_xe_mk
-    Mandell and Katz' fit for the excitation cross section of xenon
-    Input:
-        - Te: electron temperature (eV)
-    Output:
-        - Excitation cross section (m2)
-    '''
-    eps_x = 11.6 # Excitation energy (eV)
-    return 1.93e-19*np.exp(-eps_x/TeV)/np.sqrt(TeV)
-
 def resistance(ne,TeV,ng,L,r):
     '''
     Function: resistance
