@@ -143,7 +143,7 @@ def goal_function(X, args):
 
     return goal
 
-def sw_pressure_correlation(mdot, Id, orifice_diameter, mass):
+def sw_pressure_correlation(mdot, Id, do, mass):
     """
     Function: sw_pressure_correlation
     Calculates the pressure correlation proposed by Siegfried and Wilbur
@@ -159,16 +159,16 @@ def sw_pressure_correlation(mdot, Id, orifice_diameter, mass):
         c1 = 5.6
         c2 = 1.2
 
-    Ptorr = mdot / (orifice_diameter*1e3)**2 * (c1 + c2*Id)*1e-3
+    Ptorr = mdot / (do*1e3)**2 * (c1 + c2*Id)*1e-3
 
     return Ptorr * cc.Torr
 
-def solve(cathode_diameter,
+def solve(dc,
           eps_i, mass,
           phi_wf, DRD,
           TeV,
           X0=None,
-          P=None, mdot=None, orifice_diameter=None,
+          P=None, mdot=None, do=None,
           Id=None, Pfunc=sw_pressure_correlation,
           lambda_pr=hg_lambda_pr, qth=None,
           solver_tol=1E-8,
@@ -181,7 +181,8 @@ def solve(cathode_diameter,
         3. Insert surface power balance
         4. Plasma volume power balance
     Inputs:
-        1. Geometry: cathode_diameter, orifice_diameter (optional). Both in m
+        1. Geometry: cathode diameter dc, orifice diameter do (optional).
+        Both in m
         2. Gas: ionization potential "eps_i" (eV), particle mass "mass" (kg)
         3. Emitter info: work function "phi_wf" (eV), Richardson-Dushman
         constant for the material considered "DRD" (A/m^2)
@@ -214,7 +215,7 @@ def solve(cathode_diameter,
         solvec = []
         idx = 0
         for lId, lmdot in cases:
-            lP = Pfunc(lmdot, lId, orifice_diameter, mass)
+            lP = Pfunc(lmdot, lId, do, mass)
 
             # Initial guess: densities and temperature are scaled
             if X0 is None:
@@ -237,7 +238,7 @@ def solve(cathode_diameter,
                             'xtol':solver_tol, 'ftol':solver_tol}
 
             # Arguments
-            dc = cathode_diameter
+            dc = dc
             args = [dc,
                     eps_i, mass,
                     phi_wf, DRD,
