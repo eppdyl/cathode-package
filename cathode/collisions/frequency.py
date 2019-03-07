@@ -71,11 +71,21 @@ def nu_en_xe_mk(ng, TeV, xsec_type='variable'):
     - Goebel, D. M. and Katz, I., "Fundamentals of Electric Propulsion,"
       Appendix D p.475, John Wiley and Sons, 2008.
     """
-    # Thermal velocity of electrons
-    vte = cp.thermal_velocity(TeV)
+    # Depending on the type of cross-section the velocity is different
+    # Mandell and Katz with a constant cross section use the thermal velocity
+    # of electrons. Later models use the Maxwellian-averaged cross section and
+    # therefore the mean Maxwellian velocity.
+    if xsec_type == 'constant':
+        # Thermal velocity of electrons
+        ve = cp.thermal_velocity(TeV)
+    elif xsec_type == 'variable':
+        ve = cp.mean_velocity(TeV, species='e')
+    else:
+        raise ValueError
+
     # Cross section
     en_xsec = xsec.electron_neutral_xe_mk(TeV, xsec_type)
     # Collision freq.
-    nu_en = ng * en_xsec * vte
+    nu_en = ng * en_xsec * ve
 
     return nu_en
