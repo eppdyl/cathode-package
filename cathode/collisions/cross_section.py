@@ -126,7 +126,7 @@ def excitation_xe_mk(TeV):
     - Goebel, D. M. and Katz, I., "Fundamentals of Electric Propulsion,"
       Appendix D p.475, John Wiley and Sons, 2008.
     """
-    ret = 1.93e-19 * np.sqrt(TeV) * np.exp(-11.6 / TeV)
+    ret = 1.93e-19 * np.exp(-11.6 / TeV) / np.sqrt(TeV)
 
     return ret
 
