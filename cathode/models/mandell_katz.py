@@ -197,11 +197,11 @@ def ion_loss(ne, TeV, L, r, M):
         - Total ion loss (1/s)
     '''
     Aeff = 2*np.pi*r*(r+L)
-    ji = J_i(ne,TeV,M)
+    ji = J_i(ne, TeV, M)
 
     return Aeff * ji
 
-def ion_balance(ne,TeV,ng,args):
+def ion_balance(ne, TeV, ng, args):
     '''
     Function: ion_balance
     Difference of ion production and loss. Should be zero (creation=loss)
@@ -213,14 +213,14 @@ def ion_balance(ne,TeV,ng,args):
     Outputs:
         - Ion species balance (1/s)
     '''
-    L,r,M,sigma_iz = args
+    L, r, M, sigma_iz = args
 
-    ip = ion_production(ne,TeV,ng,L,r,sigma_iz)
-    il = ion_loss(ne,TeV,L,r,M)
+    ip = ion_production(ne, TeV, ng, L, r, sigma_iz)
+    il = ion_loss(ne, TeV, L, r, M)
 
     return ip-il
 
-def flow_balance(ne,TeV,ng,args):
+def flow_balance(ne, TeV, ng, args):
     '''
     Function: flow_balance
     Difference of "charge flow rate" between inlet and outlets of the orifice.
@@ -234,13 +234,14 @@ def flow_balance(ne,TeV,ng,args):
         - "Charge" flow rate balance (C/s = A)
     '''
 
-    TgV,r,M,mdot = args
+    TgV, r, M, mdot = args
 
     mdot_A = mdot * cc.sccm2eqA # Flow rate (eq-A)
     Ao = np.pi*r**2 # Orifice area (m2)
 
     # Neutral particle flux (A)
-    gam_g = cc.e * ng * np.sqrt(cc.e*TgV/(2*np.pi*M))
+    vg = np.sqrt(cc.me/M) * cp.mean_velocity(TgV, 'e')
+    gam_g = 1/4 * cc.e * ng * vg
     gam_g *= Ao
 
     # Ion flux (A)
@@ -253,7 +254,7 @@ def flow_balance(ne,TeV,ng,args):
 
     return ret
 
-def goal_function(x,args):
+def goal_function(x, args):
     # Unpack inputs
     ne = x[0]*1E21
     TeV = x[1]
@@ -270,9 +271,9 @@ def goal_function(x,args):
     args_fb = args['fb']
 
     # Compute the balances
-    goal[0] = power_balance(ne,TeV,ng, args_pb)
-    goal[1] = ion_balance(ne,TeV,ng, args_ib)
-    goal[2] = flow_balance(ne,TeV,ng, args_fb)
+    goal[0] = power_balance(ne, TeV, ng, args_pb)
+    goal[1] = ion_balance(ne, TeV, ng, args_ib)
+    goal[2] = flow_balance(ne, TeV, ng, args_fb)
 
     # Rescale goal vector
     goal[0] /= 1e6
