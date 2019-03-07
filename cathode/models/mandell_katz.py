@@ -179,10 +179,12 @@ def power_balance(ne, TeV, ng, args):
     return oh-il-rl-cl
 
 
-def J_i(ne,TeV,M):
-    return np.sqrt(cc.me/M)*J_e(ne,TeV)
+def J_i(ne, TeV, M):
+    ve = cp.mean_velocity(TeV, 'e')
 
-def ion_loss(ne,TeV,L,r,M):
+    return 1/4 * cc.e * np.sqrt(cc.me/M) * ve
+
+def ion_loss(ne, TeV, L, r, M):
     '''
     Function: ion_loss
     Total loss of ions to the walls and inflow/outflow
