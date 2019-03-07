@@ -93,84 +93,105 @@ def resistivity(ne, ng, TeV):
     return ret
 
 
-def thermionic_current_density(Tw,phi_wf,D=cc.A0):
+def thermionic_current_density(Tw, phi_wf, D=cc.A0):
     """
     Returns the thermionic electron emission current density as defined by the
     Richardson-Dushman equation with the option of incorporating an experimentally
     determined temperature coefficient through the use of D.
     Inputs:
-        wall temperature, K
-        work function, V
+        - Tw: wall temperature (K)
+        - phi_wf: work function (eV)
     Optional Input:
-        D, experimental coefficient A/(m-K)^2 defaults to the universal constant A0
+        - D: experimental coefficient (A/(m-K)^2). Defaults to the universal 
+        constant A0
     Output:
-        current density in A/m^2
+        current density (A/m^2)
     """
     return D*Tw**2*np.exp(-cc.e*phi_wf/(cc.kB*Tw))
 
-def ion_current_density(ne,TeV,species='Xe'):
-    return cc.e*ne*cp.bohm_velocity(TeV,species)
+def ion_current_density(ne, TeV, species='Xe'):
+    return cc.e*ne*cp.bohm_velocity(TeV, species)
 
-def plasma_resistance(length,diameter,ne,neutral_density,TeV):
-    return length*resistivity(ne,neutral_density,TeV)/(cc.pi*(diameter/2.0)**2)
+def plasma_resistance(L, d, ne, ng, TeV):
+    return L*resistivity(ne, ng, TeV)/(cc.pi*(d/2)**2)
 
-def random_electron_current_density(ne,TeV,phi_s):
-    return cc.e*ne*cp.mean_velocity(TeV,'e')*np.exp(-phi_s/TeV)/4.0
+def random_electron_current_density(ne, TeV, phi_s):
+    return cc.e*ne*cp.mean_velocity(TeV, 'e') * np.exp(-phi_s/TeV)/4
 
-def heat_loss(Tw=None,method='fixed',curve=None):
+def heat_loss(Tw=None, method='fixed', curve=None):
     if (method == 'fixed'):
         return 13
     if (method == 'spline'):
         return curve(Tw)
-    
-def insert_plasma_power_balance(ne,Tw,phi_s,Id,TeV,D,phi_wf,E_iz,length,diameter,neutral_density): #may want to add species later
-    A_emit = cc.pi*length*diameter
-    
-    lhs = (thermionic_current_density(Tw,phi_wf,D)*A_emit*phi_s + 
-           plasma_resistance(length,diameter,ne,neutral_density,TeV)*Id**2)
-    
-    rhs = (ion_current_density(ne,TeV)*A_emit*E_iz + 2.5*TeV*Id + 
-           (2.0*TeV + phi_s)*random_electron_current_density(ne,TeV,phi_s)*A_emit)
 
-    return (lhs - rhs)
+def insert_plasma_power_balance(ne, Tw, phi_s, Id, TeV, D, phi_wf, eps_i, L, d,
+                                ng): #may want to add species later
+    Aemit = cc.pi*L*d
 
-def current_balance(ne,Tw,phi_s,Id,TeV,D,phi_wf,E_iz,length,diameter,neutral_density):
-    A_emit = cc.pi*length*diameter
-    
+    lhs = (thermionic_current_density(Tw, phi_wf, D)*Aemit * phi_s +
+           plasma_resistance(L, d, ne, ng, TeV) * Id**2
+          )
+
+    rhs = (ion_current_density(ne, TeV) * Aemit * eps_i
+           + 5/2*TeV*Id
+           + (2*TeV + phi_s)*
+           random_electron_current_density(ne, TeV, phi_s) * Aemit
+          )
+
+    ret = lhs-rhs
+    return ret
+
+def current_balance(ne, Tw, phi_s, Id, TeV, D, phi_wf, eps_i, L, d,
+                    ng):
+    Aemit = cc.pi*L*d
+
     lhs = Id
-    
-    rhs = (thermionic_current_density(Tw,phi_wf,D)*A_emit + 
-           ion_current_density(ne,TeV)*A_emit - 
-           random_electron_current_density(ne,TeV,phi_s)*A_emit)
-    
-    return (lhs - rhs)
 
-def emitter_power_balance(ne,Tw,phi_s,Id,TeV,D,phi_wf,E_iz,length,diameter,neutral_density):
-    A_emit = cc.pi*length*diameter
-    
-    lhs = heat_loss(Tw) + thermionic_current_density(Tw,phi_wf,D)*phi_wf*A_emit
-    
-    rhs = (ion_current_density(ne,TeV)*(E_iz + phi_s + 0.5*TeV - phi_wf)*A_emit +
-           (2.0*TeV + phi_wf)*random_electron_current_density(ne,TeV,phi_s)*A_emit)
-    
-    return (lhs-rhs)
-    
-def zerofun(x,args):
-    ne=x[0]*1E21
-    Tw=x[1]*1E3
-    phi_s=x[2]
-    
+    rhs = (thermionic_current_density(Tw, phi_wf, D) * Aemit +
+           ion_current_density(ne, TeV) * Aemit -
+           random_electron_current_density(ne, TeV, phi_s) * Aemit)
+
+    ret = lhs-rhs
+    return ret
+
+def emitter_power_balance(ne, Tw, phi_s, Id, TeV, D, phi_wf, eps_i, L, d,
+                          ng):
+    Aemit = cc.pi*L*d
+
+    lhs = (heat_loss(Tw) +
+           thermionic_current_density(Tw, phi_wf, D) * phi_wf * Aemit
+          )
+
+    rhs = (ion_current_density(ne, TeV)*
+           (eps_i + phi_s + 1/2*TeV - phi_wf)*Aemit +
+           (2*TeV + phi_wf)*
+           random_electron_current_density(ne, TeV, phi_s) * Aemit
+          )
+
+    ret = lhs-rhs
+    return ret
+
+def zerofun(x, args):
+    ne = x[0]*1E21
+    Tw = x[1]*1E3
+    phi_s = x[2]
+
     #unpack arguments
-    Id,TeV,D,phi_wf,E_iz,length,diameter,neutral_density = args
-    
-    goal=np.zeros(3)
-    goal[0]=insert_plasma_power_balance(ne,Tw,phi_s,Id,TeV,D,phi_wf,E_iz,length,diameter,neutral_density)/10.0
-    goal[1]=current_balance(ne,Tw,phi_s,Id,TeV,D,phi_wf,E_iz,length,diameter,neutral_density)/10.0
-    goal[2]=emitter_power_balance(ne,Tw,phi_s,Id,TeV,D,phi_wf,E_iz,length,diameter,neutral_density)/10.0
-    
+    Id, TeV, D, phi_wf, eps_i, L, d, ng = args
+
+    goal = np.zeros(3)
+    goal[0] = insert_plasma_power_balance(ne, Tw, phi_s, Id, TeV, D, phi_wf,
+                                          eps_i, L, d, ng)
+    goal[1] = current_balance(ne, Tw, phi_s, Id, TeV, D, phi_wf, eps_i, L, d,
+                              ng)
+    goal[2] = emitter_power_balance(ne, Tw, phi_s, Id, TeV, D, phi_wf, eps_i, L,
+                                    d, ng)
+
+    goal = goal/10
+
     print('GOAL FUN:',goal)
     print('ARGS:',x)
-    
+
     return goal
 
 def sheath_voltage(Id,TeV,phi_wf,length,diameter,ne,neutral_density,h_loss=heat_loss()):
