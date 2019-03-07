@@ -86,7 +86,7 @@ def ion_production(ne, TeV, ng, L, r, sigma_iz):
 
     ve = cp.mean_velocity(TeV, 'e')
 
-    return vol * sig_iz * cc.e * ve * ng
+    return vol * sig_iz * cc.e * ne * ve * ng
 
 def ionization_loss(ne, TeV, ng, L, r, eps_i, sigma_iz):
     '''
@@ -102,7 +102,7 @@ def ionization_loss(ne, TeV, ng, L, r, eps_i, sigma_iz):
     Outputs:
         - Ionization power loss (W)
     '''
-    ip = ion_production(ne,TeV,ng,L,r,sigma_iz)
+    ip = ion_production(ne, TeV, ng, L, r, sigma_iz)
 
     il = eps_i * ip
 
@@ -128,7 +128,7 @@ def excitation_loss(ne, TeV, ng, L, r, eps_x, sigma_ex):
 
     ve = cp.mean_velocity(TeV, 'e')
 
-    el = eps_x * vol * sig_ex * cc.e * ve * ng
+    el = eps_x * vol * sig_ex * cc.e * ne * ve * ng
 
     return el
 
@@ -183,7 +183,7 @@ def power_balance(ne, TeV, ng, args):
 def J_i(ne, TeV, M):
     ve = cp.mean_velocity(TeV, 'e')
 
-    return 1/4 * cc.e * np.sqrt(cc.me/M) * ve
+    return 1/4 * cc.e * np.sqrt(cc.me/M) * ve * ne
 
 def ion_loss(ne, TeV, L, r, M):
     '''
@@ -246,7 +246,7 @@ def flow_balance(ne, TeV, ng, args):
     gam_g *= Ao
 
     # Ion flux (A)
-    gam_i = J_i(ne,TeV,M)
+    gam_i = J_i(ne, TeV, M)
     gam_i *= Ao
 
     # Balance
