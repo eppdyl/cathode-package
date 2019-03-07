@@ -23,6 +23,7 @@ from itertools import product
 import cathode.constants as cc
 import cathode.physics as cp
 import cathode.collisions.frequency as nu
+import cathode.collisions.cross_section as xsec
 import numpy as np
 
 from scipy.optimize import root
@@ -286,11 +287,11 @@ def solve(do, Lo,
           eps_i, eps_x, mass,
           TeV_ins, TgV,
           Id, mdot,
-          sig_iz=sig_iz_xe_mk, sig_ex=sig_ex_xe_mk,
+          sig_iz=xsec.ionization_xe_mk, sig_ex=xsec.excitation_xe_mk,
           convection='MK',
-          solver_tol = 1e-8,solver_out = False):
+          solver_tol=1e-8):
     """
-    Solves for the electron and neutral densities and electron temperature in 
+    Solves for the electron and neutral densities and electron temperature in
     the orifice.
     Uses:
         - Mass conservation
@@ -304,9 +305,9 @@ def solve(do, Lo,
         3. Emitter info: None
         4. Experimental info: electron insert temperature "TeV_ins" (eV),
         neutral gas temperature "TgV" (eV)
-        5. Operating conditions: discharge current "Id" (A), mass flow rate 
+        5. Operating conditions: discharge current "Id" (A), mass flow rate
         "mdot" (sccm)
-        6. Necessary functions: ionization and excitaiton cross-sections 
+        6. Necessary functions: ionization and excitaiton cross-sections
         "sig_iz" and "sig_ex" (m2). Defaults to the fits proposed by Mandell
         and Katz for xenon.
         7. Other: "convection" chooses either the Mandell and Katz convection
@@ -339,31 +340,31 @@ def solve(do, Lo,
             x0 = np.array([ne0*1e-21,Te0,ng0*1e-22])
 
         root_options = {'maxiter':int(1e6),
-                        'xtol':solver_tol,'ftol':solver_tol}
+                        'xtol':solver_tol, 'ftol':solver_tol}
 
         # Arguments
         ro = do/2
 
-        args_pb = [lTeV_ins,lId,
-                   Lo,ro,
-                   eps_i,eps_x,
-                   sig_iz,sig_ex,
+        args_pb = [lTeV_ins, lId,
+                   Lo, ro,
+                   eps_i, eps_x,
+                   sig_iz, sig_ex,
                    convection]
-        args_ib = [Lo,ro,mass,sig_iz]
-        args_fb = [TgV,ro,mass,lmdot]
+        args_ib = [Lo, ro, mass, sig_iz]
+        args_fb = [TgV, ro, mass, lmdot]
 
         args = {}
         args['pb'] = args_pb
         args['ib'] = args_ib
         args['fb'] = args_fb
         # Solve!
-        optimize_results = root(goal_function,x0,args=args,
-                                method='lm',options = root_options)
+        optimize_results = root(goal_function, x0, args=args,
+                                method='lm', options=root_options)
 
         # Extract and rescale results
-        ne,TeV,ng = optimize_results.x
+        ne, TeV, ng = optimize_results.x
 
-        rescaled_results = [lId,lmdot,lTeV_ins,ne*1e21,TeV,ng*1e22]
+        rescaled_results = [lId, lmdot, lTeV_ins, ne*1e21, TeV, ng*1e22]
 
         solvec.append(rescaled_results)
 
