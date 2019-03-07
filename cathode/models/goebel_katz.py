@@ -212,12 +212,12 @@ def average_plasma_density_model(Id, TeV, phi_wf, L, d, ne, ng,
     num = (Rp*Id**2 - 5/2*TeV*Id + phi_s*Id)
 
     # Denominator
-    vte = cp.mean_velocity(TeV, species='e')
+    ve = cp.mean_velocity(TeV, species='e')
 
-    t1 = 1/4 * cc.e *f_n * TeV * vte
+    t1 = 1/4 * cc.e *f_n * TeV * ve
     t1 *= Aemit * np.exp(-phi_s/TeV)
 
-    t2 = cc.e *ng * Vemit * (eps_i + phi_s)*xsec.ionization_xe_mk(TeV) * vte
+    t2 = cc.e *ng * Vemit * (eps_i + phi_s)*xsec.ionization_xe_mk(TeV) * ve
 
     den = t1 + t2
 
@@ -226,16 +226,19 @@ def average_plasma_density_model(Id, TeV, phi_wf, L, d, ne, ng,
 
     return ne_bar, phi_s
 
-def orifice_plasma_density_model(Id,TeV,TeV_insert,length,diameter,ne,neutral_density,E_iz):
+def orifice_plasma_density_model(Id, TeV, TeV_insert, L, d, ne, ng, eps_i):
 
-    Rp = plasma_resistance(length,diameter,ne,neutral_density,TeV)
-    #print(Rp)
-    V_ori = cc.pi*diameter**2*length/4.0
-    #print(Id**2*Rp)
-    #print(2.5*(TeV-TeV_insert)*Id)
+    Rp = plasma_resistance(L, d, ne, ng, TeV)
+    Vori = cc.pi*d**2*L/4
 
-    return ((Id**2*Rp - 2.5*Id*(TeV-TeV_insert))/(cc.e*neutral_density*
-           xsec.ionization_xe_mk(TeV)*cp.mean_velocity(TeV,'e')*E_iz*V_ori))
+    ve = cp.mean_velocity(TeV,'e')
+
+
+    num = Rp*Id**2 - 5/2*Id*(TeV-TeV_insert)
+    den = cc.e * ng * xsec.ionization_xe_mk(TeV) * ve * eps_i * Vori
+
+    ne_bar = num/den
+    return ne_bar
 
 
 def approx_solve(Id,orifice_length,orifice_diameter,
