@@ -19,6 +19,8 @@ We use the typical plasma physics Coulomb logarithm expression, which differs
 only by 0.3% from the expression proposed by Mandell and Katz.
 """
 import cathode.constants as cc
+import cathode.collisions.cross_section as xsec
+import cathode.collisions.frequency as nu
 import numpy as np
 
 from scipy.optimize import root
@@ -63,7 +65,7 @@ def resistance(ne,TeV,ng,L,r):
         - Resistance (Ohms)
     '''
     # Resistivity
-    eta = cp.nu_ei(ne,TeV) + nu_en(ng,TeV)
+    eta = nu.nu_ei(ne,TeV) + nu.nu_en_xe_mk(ng, TeV, 'constant')
     eta *= cc.me / (ne * cc.e**2)
     
     # Resistance
