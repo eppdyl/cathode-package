@@ -316,12 +316,12 @@ def solve(do, Lo,
     """
 
     if(len(Id) == len(mdot) == len(TeV_ins)):
-        cases = zip(Id,mdot,TeV_ins)
+        cases = zip(Id, mdot, TeV_ins)
     else:
-        cases = product(Id,mdot,TeV_ins)
+        cases = product(Id, mdot, TeV_ins)
 
     solvec = []
-    for lId,lmdot,lTeV_ins in cases:
+    for lId, lmdot, lTeV_ins in cases:
         # Initial guess: densities are scaled
         ne0 = 1e21 # 1/m3
         Te0 = 2.5 # eV
@@ -331,13 +331,13 @@ def solve(do, Lo,
         # to I.V.
         # TODO: Find a better solution here
         if lmdot == 1:
-            x0 = np.array([1,2.5,1])
+            x0 = np.array([1, 2.5, 1])
         elif lmdot == 6:
-            x0 = np.array([2,1.8,2])
+            x0 = np.array([2, 1.8, 2])
         elif lmdot == 10:
-            x0 = np.array([0.5,1.7,1])
+            x0 = np.array([0.5, 1.7, 1])
         else:
-            x0 = np.array([ne0*1e-21,Te0,ng0*1e-22])
+            x0 = np.array([ne0*1e-21, Te0, ng0*1e-22])
 
         root_options = {'maxiter':int(1e6),
                         'xtol':solver_tol, 'ftol':solver_tol}
