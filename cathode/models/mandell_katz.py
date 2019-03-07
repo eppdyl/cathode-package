@@ -131,7 +131,7 @@ def excitation_loss(ne, TeV, ng, L, r, eps_x, sigma_ex):
 
     return el
 
-def convection_loss(TeV,TeV_ins,Id,convection='MK'):
+def convection_loss(TeV, TeV_ins, Id, convection='MK'):
     '''
     Function: convection_loss
     Calculates the total convection losses.
@@ -156,7 +156,7 @@ def convection_loss(TeV,TeV_ins,Id,convection='MK'):
 
     return fac*ret
 
-def power_balance(ne,TeV,ng,args):
+def power_balance(ne, TeV, ng, args):
     '''
     Function: power_balance
     Difference of power input to and output from the plasma volume. Should be
@@ -169,12 +169,12 @@ def power_balance(ne,TeV,ng,args):
     Outputs:
         - Power balance (W)
     '''
-    TeV_ins,Id,L,r,eps_i,eps_x,sigma_iz,sigma_ex,convection = args
+    TeV_ins, Id, L, r, eps_i, eps_x, sigma_iz, sigma_ex, convection = args
 
-    oh = ohmic_heating(ne,TeV,ng,Id,L,r)
-    il = ionization_loss(ne,TeV,ng,L,r,eps_i,sigma_iz)
-    rl = excitation_loss(ne,TeV,ng,L,r,eps_x,sigma_ex)
-    cl = convection_loss(TeV,TeV_ins,Id,convection)
+    oh = ohmic_heating(ne, TeV, ng, Id, L, r)
+    il = ionization_loss(ne, TeV, ng, L, r, eps_i, sigma_iz)
+    rl = excitation_loss(ne, TeV, ng, L, r, eps_x, sigma_ex)
+    cl = convection_loss(TeV, TeV_ins, Id, convection)
 
     return oh-il-rl-cl
 
