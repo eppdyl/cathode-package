@@ -8,9 +8,6 @@ calculations and atomic physics methods.
 """
 
 import numpy as np
-import re
-from scipy.interpolate import splrep,splev
-from scipy.integrate import quad
 import cathode.constants as cc
 
 ###############################################################################
@@ -102,6 +99,6 @@ def coulomb_log(ne,TeV,collision_type='ei'):
     Ref: NRL Plasma Formulary (values translated from CGS to SI)
     """
     if collision_type == 'ei':
-        return (23.0 - 0.5*np.log(1E-6*ne/(TeV**3.0))) 
+        return (23.0 - 0.5*np.log(1E-6*ne/(TeV**3.0)))
     elif collision_type == 'ee':
         return (23.5 - 0.5*np.log(1E-6*ne/(TeV**(5.0/2.0)))-np.sqrt(1E-5 + (np.log(TeV)-2.0)**2/16.0))
