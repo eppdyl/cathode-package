@@ -95,35 +95,36 @@ def reaction_rate(xsec_spline, TeV, Emin=None, Emax=None, output_xsec=False):
 
 
 @np.vectorize
-def beam_reaction_rate(xsec_spline,Ebeam):
+def beam_reaction_rate(xsec_spline, Ebeam):
     """
-    Returns the reaction rate for monoenergetic beam 
+    Returns the reaction rate for monoenergetic beam
     electrons and cross section described by xsec_spline.
     Inputs:
-        Cross section spline created by create_cross_section_spline()
-        Beam energy in eV
+        - xsec_pline: cross section spline created by
+        create_cross_section_spline()
+        - Ebeam: Beam energy (eV)
     Output:
         Reaction rate (m^3/s)
     """
-    
-    #beam electron velocity
+
+    # Beam electron velocity
     v = np.sqrt(2.0*cc.e*Ebeam/cc.me)
-    
+
     return v*xsec_spline(Ebeam)
 
 
-def finite_temperature_beam_reaction_rate(xsec_spline,Ebeam,Tbeam):
+def finite_temperature_beam_reaction_rate(xsec_spline, Ebeam, Tbeam):
     return NotImplemented
 
 def domonkos_beam_reaction_rate():
     return NotImplemented
 
-def mean_free_path(xsec_spline,TeV,target_species_density):
+def mean_free_path(xsec_spline, TeV, target_species_density):
     '''
     Returns the mean free path for the given collision type assuming a
     maxwellian distribution of test particles with temperature TeV and
     collision cross section as a function of energy given by xsec_spline.
     '''
-    rate,xsec_avg = reaction_rate(xsec_spline,TeV,output_xsec=True)
+    _, xsec_avg = reaction_rate(xsec_spline, TeV, output_xsec=True)
 
     return 1/(target_species_density*xsec_avg)
