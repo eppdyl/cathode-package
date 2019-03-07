@@ -289,69 +289,70 @@ def solve(Id, Lo, do, Lc, dc,
         print('-------------------INSERT-----------------------')
     #use the orifice dimensions and the flow rate to get P_ins
     P_insert_downstream = flow.poiseuille_flow(Lo, do, mdot, TgK, Pout)
-    P_insert_upstream = flow.poiseuille_flow(Lc, dc, mdot, TgK, 
+    P_insert_upstream = flow.poiseuille_flow(Lc, dc, mdot, TgK,
                                              P_insert_downstream)
 
-    P_insert = (P_insert_downstream+P_insert_upstream)/2
+    P_insert = (P_insert_downstream + P_insert_upstream)/2
 
     if verbose:
         print('Pressure:\t\t\t{:.3f} Torr (upstream)\n\t\t\t\t{:.3f} Torr (downstream)\n\t\t\t\t{:.3f} Torr (average)'.format(
             P_insert_upstream,P_insert_downstream,P_insert))
 
-    neutral_density = P_insert*cc.Torr2eVm3/(Tgas*cc.Kelvin2eV)
+    ng = P_insert * cc.Torr2eVm3 / (TgK*cc.Kelvin2eV)
 
-    TeV = ambipolar_diffusion_model(insert_diameter/2.0,neutral_density,Tgas*cc.Kelvin2eV)[0]
+    TeV = ambipolar_diffusion_model(dc/2, ng, TgK*cc.Kelvin2eV)[0]
+
     if verbose:
         print('Electron Temperature:\t\t{:.3f} eV'.format(TeV))
 
     #first guess value for ne
     #sheath voltage at initial step
     ne_bar = 1.5E21
-    phi_s = sheath_voltage(Id,TeV,phi_wf,insert_length,insert_diameter,ne_bar,neutral_density,h_loss)
+    phi_s = sheath_voltage(Id, TeV, phi_wf, Lc, dc, ne_bar, ng ,h_loss)
     delta = 1.0
 
-    while(delta>=solver_tol):
+    while delta >= solver_tol:
         phi_s_old = phi_s
         ne_old = ne_bar
-        ne_bar,phi_s = average_plasma_density_model(Id,TeV,phi_wf,insert_length,insert_diameter,
-                                                    ne_old,neutral_density,plasma_potential,E_iz,h_loss)
-        delta = np.max(np.abs([1-phi_s/phi_s_old,1-ne_bar/ne_old]))
+        ne_bar, phi_s = average_plasma_density_model(Id, TeV, phi_wf, Lc, dc,
+                                                     ne_old, ng, phi_p,
+                                                     eps_i, h_loss)
+        delta = np.max(np.abs([1-phi_s/phi_s_old, 1-ne_bar/ne_old]))
         if solver_out:
-            print(delta,ne_bar,phi_s)
+            print(delta, ne_bar, phi_s)
 
-    avg_to_peak = 2*jn(1,cc.BesselJ01)/cc.BesselJ01
+    avg_to_peak = 2*jn(1, cc.BesselJ01)/cc.BesselJ01
 
     if verbose:
         print('Plasma Density:\t\t\t{:.3E} /m^3'.format(ne_bar))
         print('Peak Density:\t\t\t{:.3E} /m^3'.format(ne_bar/avg_to_peak))
         print('Sheath Voltage:\t\t\t{:.3f} V'.format(phi_s))
 
-    P_orifice_downstream = P_outlet
+    P_orifice_downstream = Pout
     P_orifice_upstream = P_insert_downstream
 
-    P_orifice = (P_orifice_upstream+P_orifice_downstream)/2.0
+    P_orifice = (P_orifice_upstream + P_orifice_downstream)/2
 
-    orifice_neutral_density = P_orifice*cc.Torr2eVm3/(Tgas*cc.Kelvin2eV)
+    ng_o = P_orifice*cc.Torr2eVm3/(TgK*cc.Kelvin2eV)
 
     if verbose:
         print('-------------------ORIFICE----------------------')
         print('Pressure:\t\t\t{:.3f} Torr (upstream)\n\t\t\t\t{:.3f} Torr (downstream)\n\t\t\t\t{:.3f} Torr (average)'.format(
                 P_orifice_upstream,P_orifice_downstream,P_orifice))
 
-    TeV_orifice = ambipolar_diffusion_model(orifice_diameter/2.0,orifice_neutral_density,
-                                            Tgas*cc.Kelvin2eV)[0]
+    TeV_o = ambipolar_diffusion_model(do/2, ng_o, TgK*cc.Kelvin2eV)[0]
 
     if verbose:
-        print('Electron Temperature:\t\t{:.3f} eV'.format(TeV_orifice))
+        print('Electron Temperature:\t\t{:.3f} eV'.format(TeV_o))
 
-    solve_fun = lambda n: n - orifice_plasma_density_model(Id,TeV_orifice,TeV,orifice_length,
-                                                      orifice_diameter,n,
-                                                      orifice_neutral_density,E_iz)
-    ne_bar_orifice = fsolve(solve_fun,1E18)[0]
+    solve_fun = lambda ne_o: ne_o - orifice_plasma_density_model(Id, TeV_o, TeV,
+                                                                 Lo, do, ne_o,
+                                                                 ng_o, eps_i)
+    ne_bar_orifice = fsolve(solve_fun, 1E18)[0]
 
     if verbose:
         print('Plasma Density:\t\t\t{:.3E} /m^3'.format(ne_bar_orifice))
         print('Peak Density:\t\t\t{:.3E} /m^3'.format(ne_bar_orifice/avg_to_peak))
 
 
-    return P_insert,TeV,ne_bar,phi_s,P_orifice,TeV_orifice,ne_bar_orifice
+    return P_insert, TeV, ne_bar, phi_s, P_orifice, TeV_o, ne_bar_orifice
