@@ -194,8 +194,15 @@ def zerofun(x, args):
 
     return goal
 
-def sheath_voltage(Id,TeV,phi_wf,length,diameter,ne,neutral_density,h_loss=heat_loss()):
-    return ((h_loss/Id) + 2.5*TeV + phi_wf - Id*plasma_resistance(length,diameter,ne,neutral_density,TeV))
+def sheath_voltage(Id, TeV, phi_wf, L, d, ne, ng, h_loss=heat_loss()):
+    Rp = plasma_resistance(L, d, ne, ng, TeV)
+
+    t1 = h_loss/Id
+    t2 = 5/2 * TeV + phi_wf
+    t3 = Rp * Id
+
+    phi_s = t1+t2-t3
+    return phi_s
 
 def average_plasma_density_model(Id, TeV, phi_wf, L, d, ne, ng,
                                  phi_p, eps_i, h_loss=heat_loss()):
