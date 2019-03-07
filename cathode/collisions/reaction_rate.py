@@ -118,13 +118,3 @@ def finite_temperature_beam_reaction_rate(xsec_spline, Ebeam, Tbeam):
 
 def domonkos_beam_reaction_rate():
     return NotImplemented
-
-def mean_free_path(xsec_spline, TeV, target_species_density):
-    '''
-    Returns the mean free path for the given collision type assuming a
-    maxwellian distribution of test particles with temperature TeV and
-    collision cross section as a function of energy given by xsec_spline.
-    '''
-    _, xsec_avg = reaction_rate(xsec_spline, TeV, output_xsec=True)
-
-    return 1/(target_species_density*xsec_avg)

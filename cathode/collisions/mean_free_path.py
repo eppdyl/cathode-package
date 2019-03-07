@@ -28,6 +28,8 @@
 This submodule contains functions related to the computation of mean free paths.
 """
 
+import cathode.collisions.reaction_rate as rr
+
 def lambda_pr_hg(ne, ng, phi_p):
     """
      Computes the mean free path for the primary electrons.
@@ -55,3 +57,13 @@ def lambda_pr_hg(ne, ng, phi_p):
     inv = 6.5e-17*ne/phi_p**2 + 1e3*ng*phi_p / (2.83e23 - 1.5*ng)
 
     return 1/inv
+
+def mean_free_path(xsec_spline, TeV, target_species_density):
+    '''
+    Returns the mean free path for the given collision type assuming a
+    maxwellian distribution of test particles with temperature TeV and
+    collision cross section as a function of energy given by xsec_spline.
+    '''
+    _, xsec_avg = rr.reaction_rate(xsec_spline, TeV, output_xsec=True)
+
+    return 1/(target_species_density*xsec_avg)
