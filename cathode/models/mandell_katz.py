@@ -21,6 +21,7 @@ only by 0.3% from the expression proposed by Mandell and Katz.
 from itertools import product
 
 import cathode.constants as cc
+import cathode.physics as cp
 import cathode.collisions.frequency as nu
 import numpy as np
 
@@ -64,9 +65,6 @@ def ohmic_heating(ne, TeV, ng, Id, L, r):
     Rp = resistance(ne, TeV, ng, L, r)
     return Rp*Id**2
 
-def J_e(ne,TeV):
-    return cc.e*ne*np.sqrt(cc.e*TeV/(2*np.pi*cc.me))
-
 def ion_production(ne,TeV,ng,L,r,sigma_iz):
     '''
     Function: ion_production
@@ -83,10 +81,11 @@ def ion_production(ne,TeV,ng,L,r,sigma_iz):
     '''
     vol = np.pi * r**2 * L # Volume 
 
-    sig_iz = 4*sigma_iz(TeV) # Cross-section term
-    je = J_e(ne,TeV) # Electron current   
+    sig_iz = sigma_iz(TeV) # Cross-section term
 
-    return vol * sig_iz * je * ng
+    ve = cp.mean_velocity(TeV,'e')
+
+    return vol * sig_iz * cc.e * ve * ng
 
 def ionization_loss(ne,TeV,ng,L,r,eps_i,sigma_iz):
     '''
