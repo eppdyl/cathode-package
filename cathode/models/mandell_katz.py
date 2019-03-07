@@ -26,7 +26,7 @@ import numpy as np
 
 from scipy.optimize import root
 
-def resistance(ne,TeV,ng,L,r):
+def resistance(ne, TeV, ng, L, r):
     '''
     Function: resistance
     Calculate the resistance of a plasma column of length L and radius r
@@ -39,18 +39,18 @@ def resistance(ne,TeV,ng,L,r):
         - Resistance (Ohms)
     '''
     # Resistivity
-    eta = nu.nu_ei(ne,TeV) + nu.nu_en_xe_mk(ng, TeV, 'constant')
+    eta = nu.nu_ei(ne, TeV) + nu.nu_en_xe_mk(ng, TeV, 'constant')
     eta *= cc.me / (ne * cc.e**2)
-    
-    # Resistance
-    R = L/(np.pi*r**2) * eta
-    
-    return R
 
-def ohmic_heating(ne,TeV,ng,Id,L,r):
+    # Resistance
+    Rp = L/(np.pi*r**2) * eta
+
+    return Rp
+
+def ohmic_heating(ne, TeV, ng, Id, L, r):
     '''
     Function: ohmic_heating
-    Calculate the Ohmic heating power of a plasma column of length L and 
+    Calculate the Ohmic heating power of a plasma column of length L and
     radius r
     Inputs:
         - ne: plasma density (1/m3)
@@ -61,8 +61,8 @@ def ohmic_heating(ne,TeV,ng,Id,L,r):
     Outputs:
         - Ohmic heating power (W)
     '''
-    R = resistance(ne,TeV,ng,L,r)
-    return R*Id**2
+    Rp = resistance(ne, TeV, ng, L, r)
+    return Rp*Id**2
 
 def J_e(ne,TeV):
     return cc.e*ne*np.sqrt(cc.e*TeV/(2*np.pi*cc.me))
@@ -82,10 +82,10 @@ def ion_production(ne,TeV,ng,L,r,sigma_iz):
         - Ion production (1/s)
     '''
     vol = np.pi * r**2 * L # Volume 
-    
+
     sig_iz = 4*sigma_iz(TeV) # Cross-section term
     je = J_e(ne,TeV) # Electron current   
-    
+
     return vol * sig_iz * je * ng
 
 def ionization_loss(ne,TeV,ng,L,r,eps_i,sigma_iz):
@@ -103,9 +103,9 @@ def ionization_loss(ne,TeV,ng,L,r,eps_i,sigma_iz):
         - Ionization power loss (W)
     '''
     ip = ion_production(ne,TeV,ng,L,r,sigma_iz)
-    
+
     il = eps_i * ip
-    
+
     return il
 
 def excitation_loss(ne,TeV,ng,L,r,eps_x,sigma_ex):
@@ -120,15 +120,15 @@ def excitation_loss(ne,TeV,ng,L,r,eps_x,sigma_ex):
         - eps_x: excitation energy (eV)
         - sigma_iz: ionization cross-section function (m2)
     Outputs:
-        - Exictation power loss (W)
+        - Excitation power loss (W)
     '''
     vol = np.pi * r**2 * L # Volume 
-    
+
     sig_ex = 4*sigma_ex(TeV) # Cross-section term
     je = J_e(ne,TeV) # Electron current
-    
+
     il = eps_x * vol * sig_ex * je * ng
-    
+
     return il
 
 def convection_loss(TeV,TeV_ins,Id,convection='MK'):
@@ -146,14 +146,14 @@ def convection_loss(TeV,TeV_ins,Id,convection='MK'):
         - Convection loss (W)
     '''
     ret = Id*(TeV-TeV_ins)
-    
+
     if convection == 'MK':
         fac = 1.0
     elif convection == 'corrected':
         fac = 5/2
     else:
         raise ValueError
- 
+
     return fac*ret
 
 def power_balance(ne,TeV,ng,args):
@@ -168,14 +168,14 @@ def power_balance(ne,TeV,ng,args):
         - args: list of arguments necessary for the subfunctions called
     Outputs:
         - Power balance (W)
-    '''    
+    '''
     TeV_ins,Id,L,r,eps_i,eps_x,sigma_iz,sigma_ex,convection = args
-    
+
     oh = ohmic_heating(ne,TeV,ng,Id,L,r)
     il = ionization_loss(ne,TeV,ng,L,r,eps_i,sigma_iz)
     rl = excitation_loss(ne,TeV,ng,L,r,eps_x,sigma_ex)
     cl = convection_loss(TeV,TeV_ins,Id,convection)
-    
+
     return oh-il-rl-cl
 
 
@@ -193,10 +193,10 @@ def ion_loss(ne,TeV,L,r,M):
         - M: mass of an ion (kg)
     Outputs:
         - Total ion loss (1/s)
-    '''   
+    '''
     Aeff = 2*np.pi*r*(r+L)
     ji = J_i(ne,TeV,M)
-    
+
     return Aeff * ji
 
 def ion_balance(ne,TeV,ng,args):
@@ -210,12 +210,12 @@ def ion_balance(ne,TeV,ng,args):
         - args: list of arguments necessary for the subfunctions called
     Outputs:
         - Ion species balance (1/s)
-    '''  
+    '''
     L,r,M,sigma_iz = args
-    
+
     ip = ion_production(ne,TeV,ng,L,r,sigma_iz)
     il = ion_loss(ne,TeV,L,r,M)
-    
+
     return ip-il
 
 def flow_balance(ne,TeV,ng,args):
@@ -230,25 +230,25 @@ def flow_balance(ne,TeV,ng,args):
         - args: list of arguments necessary for the subfunctions called
     Outputs:
         - "Charge" flow rate balance (C/s = A)
-    '''   
-    
+    '''
+
     TgV,r,M,mdot = args
-    
+
     mdot_A = mdot * cc.sccm2eqA # Flow rate (eq-A)
     Ao = np.pi*r**2 # Orifice area (m2)
-    
+
     # Neutral particle flux (A)
     gam_g = cc.e * ng * np.sqrt(cc.e*TgV/(2*np.pi*M))
     gam_g *= Ao
-    
+
     # Ion flux (A)
     gam_i = J_i(ne,TeV,M)
     gam_i *= Ao
-    
+
     # Balance
     ret = gam_g + gam_i
     ret -= mdot_A
-    
+
     return ret
 
 def goal_function(x,args):
@@ -256,9 +256,9 @@ def goal_function(x,args):
     ne = x[0]*1E21
     TeV = x[1]
     ng = x[2]*1E22
-    
+
     Id, mdot, Te_ins = args
-    
+
     # Goal vector
     goal=np.zeros(3)
 
@@ -269,14 +269,14 @@ def goal_function(x,args):
 
     # Compute the balances
     goal[0] = power_balance(ne,TeV,ng, args_pb)
-    goal[1] = ion_balance(ne,TeV,ng, args_ib)   
+    goal[1] = ion_balance(ne,TeV,ng, args_ib)
     goal[2] = flow_balance(ne,TeV,ng, args_fb)
-    
+
     # Rescale goal vector
     goal[0] /= 1e6
     goal[1] *= 100
     goal[2] *= 100
-    
+
     return goal
 
 def solve(do, Lo,
@@ -309,8 +309,8 @@ def solve(do, Lo,
         7. Other: "convection" chooses either the Mandell and Katz convection
         term without a factor of 5/2 ('MK') or the correct convection term with
         the factor of 5/2 ('corrected')
-    """   
-    
+    """
+
     if(len(Id) == len(mdot) == len(TeV_ins)):
         cases = zip(Id,mdot,TeV_ins)
     else:
@@ -322,7 +322,7 @@ def solve(do, Lo,
         ne0 = 1e21 # 1/m3
         Te0 = 2.5 # eV
         ng0 = 1e22 # 1/m3
-        
+
         # M&K do not give their initial guesses and solver is very sensitive
         # to I.V.
         # TODO: Find a better solution here
@@ -340,15 +340,15 @@ def solve(do, Lo,
 
         # Arguments
         ro = do/2
-       
+
         args_pb = [lTeV_ins,lId,
                    Lo,ro,
                    eps_i,eps_x,
                    sig_iz,sig_ex,
                    convection]
         args_ib = [Lo,ro,mass,sig_iz]
-        args_fb = [TgV,ro,mass,lmdot]     
-        
+        args_fb = [TgV,ro,mass,lmdot]
+
         args = {}
         args['pb'] = args_pb
         args['ib'] = args_ib
@@ -356,14 +356,14 @@ def solve(do, Lo,
         # Solve!
         optimize_results = root(goal_function,x0,args=args,
                                 method='lm',options = root_options)
-        
+
         # Extract and rescale results
         ne,TeV,ng = optimize_results.x
-        
+
         rescaled_results = [lId,lmdot,lTeV_ins,ne*1e21,TeV,ng*1e22]
-        
-        solvec.append(rescaled_results)        
-    
+
+        solvec.append(rescaled_results)
+
     solvec = np.array(solvec)
 
     return solvec
