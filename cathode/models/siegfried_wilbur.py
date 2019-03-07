@@ -20,28 +20,12 @@ Defines the model equations and solution procedure for Siegfried and Wilbur's
 from itertools import product
 
 import cathode.constants as cc
+import cathode.collisions.mean_free_path as mfp
 import numpy as np
 
 from scipy.optimize import root
 
 NUNK = 4 # Number of unknowns
-
-def hg_lambda_pr(ne, ng, phi_p):
-    """
-     Function: hg_lambda_pr
-     Description: computes the mean free path for the primary electrons.
-     Applicable to mercury only! Based on Siegfried and Wilbur's computer model
-
-     TODO: Add citation for computer model
-     Inputs:
-     - ne: Electron density (1/m3)
-     - ng: Gas density (1/m3)
-     - phi_p: Plasma potential (V)
-    """
-    inv = 6.5e-17*ne/phi_p**2 + 1e3*ng*phi_p / (2.83e23 - 1.5*ng)
-
-    return 1/inv
-
 
 def jth_rd(DRD, Tc, phi_wf, schottky=False, ne=1, phi_p=1, TeV=1):
     """
@@ -170,7 +154,7 @@ def solve(dc,
           X0=None,
           P=None, mdot=None, do=None,
           Id=None, Pfunc=sw_pressure_correlation,
-          lambda_pr=hg_lambda_pr, qth=None,
+          lambda_pr=mfp.lambda_pr_hg, qth=None,
           solver_tol=1E-8,
           weights=np.ones(NUNK)):
     """
