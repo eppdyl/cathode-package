@@ -65,7 +65,7 @@ def ohmic_heating(ne, TeV, ng, Id, L, r):
     Rp = resistance(ne, TeV, ng, L, r)
     return Rp*Id**2
 
-def ion_production(ne,TeV,ng,L,r,sigma_iz):
+def ion_production(ne, TeV, ng, L, r, sigma_iz):
     '''
     Function: ion_production
     Calculate the total amount of ions produced in the volume by direct-impact
@@ -83,11 +83,11 @@ def ion_production(ne,TeV,ng,L,r,sigma_iz):
 
     sig_iz = sigma_iz(TeV) # Cross-section term
 
-    ve = cp.mean_velocity(TeV,'e')
+    ve = cp.mean_velocity(TeV, 'e')
 
     return vol * sig_iz * cc.e * ve * ng
 
-def ionization_loss(ne,TeV,ng,L,r,eps_i,sigma_iz):
+def ionization_loss(ne, TeV, ng, L, r, eps_i, sigma_iz):
     '''
     Function: ionization_loss
     Calculates the total amount of power spent in ionization.
@@ -107,7 +107,7 @@ def ionization_loss(ne,TeV,ng,L,r,eps_i,sigma_iz):
 
     return il
 
-def excitation_loss(ne,TeV,ng,L,r,eps_x,sigma_ex):
+def excitation_loss(ne, TeV, ng, L, r, eps_x, sigma_ex):
     '''
     Function: excitation_loss
     Calculates the total amount of power spent in excitation.
@@ -123,12 +123,13 @@ def excitation_loss(ne,TeV,ng,L,r,eps_x,sigma_ex):
     '''
     vol = np.pi * r**2 * L # Volume 
 
-    sig_ex = 4*sigma_ex(TeV) # Cross-section term
-    je = J_e(ne,TeV) # Electron current
+    sig_ex = sigma_ex(TeV) # Cross-section term
 
-    il = eps_x * vol * sig_ex * je * ng
+    ve = cp.mean_velocity(TeV, 'e')
 
-    return il
+    el = eps_x * vol * sig_ex * cc.e * ve * ng
+
+    return el
 
 def convection_loss(TeV,TeV_ins,Id,convection='MK'):
     '''
