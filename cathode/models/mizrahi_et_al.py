@@ -1,3 +1,28 @@
+# "cathode" Python package
+# Version: 1.0
+# A package of various cathode models that have been published throughout the
+# years. Associated publication:
+# Wordingham, C. J., Taunay, P.-Y. C. R., and Choueiri, E. Y., "A critical
+# review of hollow cathode modeling: 0-D models," Journal of Propulsion and
+# Power, in preparation.
+#
+# Copyright (C) 2019 Christopher J. Wordingham and Pierre-Yves C. R. Taunay
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https:/www.gnu.org/licenses/>.
+#
+# Contact info: https:/github.com/pytaunay
+#
 """
 cathode.models.mizrahi_et_al
 
