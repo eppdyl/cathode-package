@@ -62,9 +62,9 @@ def reaction_rate(xsec_spline, TeV, Emin=None, Emax=None, output_xsec=False):
     # minimum and maximum bounds for spline data (flux integral should always
     # be evaluated from 0 eV)
     if not Emin:
-        Emin = np.min(xsec_spline.Emins)
+        Emin = np.min(xsec_spline.emins)
     if not Emax:
-        Emax = np.max(xsec_spline.Emaxs)
+        Emax = np.max(xsec_spline.emaxs)
 
     # Normalization factor for reaction rate integral
     normalization = 8*np.pi*cc.e**2/np.sqrt(cc.me)
