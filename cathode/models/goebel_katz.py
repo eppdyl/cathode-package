@@ -248,19 +248,51 @@ def orifice_plasma_density_model(Id, TeV, TeV_insert, L, d, ne, ng, eps_i):
     return ne_bar
 
 
-def approx_solve(Id,orifice_length,orifice_diameter,
-                 insert_length,insert_diameter,flow_rate_sccm,Tgas,P_outlet,
-                 E_iz,phi_wf,plasma_potential,h_loss=heat_loss(),
-                 solver_tol = 1E-8,solver_out = False,
-                 verbose=False):
+def solve(Id, Lo, do, Lc, dc,
+          mdot, TgK, Pout,
+          eps_i, phi_wf, phi_p, h_loss=heat_loss(),
+          solver_tol = 1E-8,
+          solver_out = False,
+          verbose=False):
+    """
+    Solves for the average electron density and electron temperature in both
+    the insert and orifice. Also outputs the insert and orifice pressure, from
+    which the neutral gas density can be deduced.
+    Uses:
+        - Ambipolar diffusion for TeV
+        - Charge conservation
+        - Plasma power balance
+        - Emitter power balance
+
+    Inputs:
+        1. Geometry: orifice diameter "do", orifice length "Lo" (m), insert
+        diameter "dc" (m)
+        2. Gas: ionization potential "eps_i" (eV), particle mass "mass" (kg).
+        3. Emitter info: work function phi_wf (eV). The Richardson-Dushman
+        constant D is assumed to be 120e4 (A/(m-K)^2).
+        4. Experimental info: plasma potential "phi_p", neutral gas temperature
+        "TgK" (K), emission length "Lc" (m).
+        5. Operating conditions: discharge current "Id" (A), mass flow rate
+        "mdot" (sccm)
+        6. Necessary functions: ionization, electron-neutral collision, and
+        charge-exchange cross-sections. They are all defined internally and
+        default to the fits proposed by Mandell and Katz. A Poiseuille flow
+        model is used to deduce the insert pressure from a specified outlet
+        pressure "Pout" (Torr). The heat loss for the emitter power balance is
+        required as well and is defined as h_loss. It defaults to an the NSTAR
+        '13 W' value if nothing is specified.
+        7. Other: solver tolerance "solver_tol" and verbosity "verbose".
+        Setting "verbose" to True generates a lot of output on the terminal.
+    """
 
     if verbose:
         print('-------------------INSERT-----------------------')
     #use the orifice dimensions and the flow rate to get P_ins
-    P_insert_downstream = flow.poiseuille_flow(orifice_length,orifice_diameter,flow_rate_sccm,Tgas,P_outlet)
-    P_insert_upstream = flow.poiseuille_flow(insert_length,insert_diameter,flow_rate_sccm,Tgas,P_insert_downstream)
+    P_insert_downstream = flow.poiseuille_flow(Lo, do, mdot, TgK, Pout)
+    P_insert_upstream = flow.poiseuille_flow(Lc, dc, mdot, TgK, 
+                                             P_insert_downstream)
 
-    P_insert = (P_insert_downstream+P_insert_upstream)/2.0
+    P_insert = (P_insert_downstream+P_insert_upstream)/2
 
     if verbose:
         print('Pressure:\t\t\t{:.3f} Torr (upstream)\n\t\t\t\t{:.3f} Torr (downstream)\n\t\t\t\t{:.3f} Torr (average)'.format(
