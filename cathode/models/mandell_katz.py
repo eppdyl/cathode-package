@@ -3,30 +3,28 @@ cathode.models.mandell_katz
 
 Defines the model equations and solution procedure for Mandell and Katz's
 0D hollow cathode model of the orifice described in:
-- Mandell, M. J. and Katz, I., "Theory of Hollow Cathode Operation in Spot and 
-Plume Modes," 30th AIAA/ASME/SAE/ASEE Joint Propulsion Conference & Exhibit, 
+- Mandell, M. J. and Katz, I., "Theory of Hollow Cathode Operation in Spot and
+Plume Modes," 30th AIAA/ASME/SAE/ASEE Joint Propulsion Conference & Exhibit,
 1994.
-- Katz, I., Gardner, B., Jongeward, G., Patterson, M., and Myers, R., "A model 
-of plasma contactor behavior in the laboratory,” 34th Aerospace Sciences 
+- Katz, I., Gardner, B., Jongeward, G., Patterson, M., and Myers, R., "A model
+of plasma contactor behavior in the laboratory,” 34th Aerospace Sciences
 Meeting and Exhibit, 1996.
-- Katz, I., Gardner, B. M., Mandell, M. J., Jongeward, G. A., Patterson, M., 
-and Myers, R. M., "Model of Plasma Contactor Performance," Journal of 
+- Katz, I., Gardner, B. M., Mandell, M. J., Jongeward, G. A., Patterson, M.,
+and Myers, R. M., "Model of Plasma Contactor Performance," Journal of
 Spacecraft and Rockets, Vol. 34, No. 6, 1997.
-- Katz, I., Mandell, M. J., Patterson, M., and Domonkos, M., "Sensitivity of 
-Hollow Cathode Performance to Design and Operating Parameters," 35th 
-AIAA/ASME/SAE/ASEE Joint Propulsion Conference & Exhibit, 1999. 
+- Katz, I., Mandell, M. J., Patterson, M., and Domonkos, M., "Sensitivity of
+Hollow Cathode Performance to Design and Operating Parameters," 35th
+AIAA/ASME/SAE/ASEE Joint Propulsion Conference & Exhibit, 1999.
 We use the typical plasma physics Coulomb logarithm expression, which differs
 only by 0.3% from the expression proposed by Mandell and Katz.
 """
+from itertools import product
+
 import cathode.constants as cc
-import cathode.collisions.cross_section as xsec
 import cathode.collisions.frequency as nu
 import numpy as np
 
 from scipy.optimize import root
-from itertools import product
-
-import cathode.physics as cp
 
 def sig_iz_xe_mk(TeV):
     '''
