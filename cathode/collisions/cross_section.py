@@ -87,7 +87,7 @@ def charge_exchange(TiV, species='Xe'):
 def ionization_xe_mk(TeV):
     """
     Electron-impact ionization cross-section for xenon. Initially proposed by
-    Mandell and Katz and reused thereafter (see e.g. Goebel and Katz' textbook)
+    Mandell and Katz and reused thereafter (see e.g., Goebel and Katz' textbook)
     Valid only for xenon and electron temperatures less than 5 eV.
 
     Inputs:
@@ -111,7 +111,7 @@ def ionization_xe_mk(TeV):
 def excitation_xe_mk(TeV):
     """
     Radiative excitation cross-section for xenon. Initially proposed by Mandell
-    and Katz and reused thereafter (see e.g. Goebel and Katz' textbook)
+    and Katz and reused thereafter (see e.g., Goebel and Katz' textbook)
     Valid only for xenon.
 
     Inputs:
@@ -133,7 +133,7 @@ def excitation_xe_mk(TeV):
 def electron_neutral_xe_mk(TeV,xsec_type='variable'):
     """
     Electron-neutral cross-section for xenon. Initially proposed by Mandell and
-    Katz, and reused thereafter (see e.g. Goebel and Katz' textbook). It is an
+    Katz, and reused thereafter (see e.g., Goebel and Katz' textbook). It is an
     improvement over the proposed model from 1994 which uses a constant cross
     section. Valid only for xenon.
 

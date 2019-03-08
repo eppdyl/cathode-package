@@ -32,17 +32,21 @@ import cathode.collisions.reaction_rate as rr
 
 def lambda_pr_hg(ne, ng, phi_p):
     """
-     Computes the mean free path for the primary electrons.
-     Applicable to mercury only! Based on Siegfried and Wilbur's computer
-     model.
+     Computes the mean free path for "primary" electrons
+     with energy phi_p incident on mercury plasma with electron
+     density ne, neutral density ng.
+     Applicable to mercury only! Based on the computer
+     model of Peters and Wilbur for excited and ionized species
+     populations in Hg.
 
-     TODO: Add citation for computer model
      Inputs:
      - ne: Electron density (1/m3)
      - ng: Gas density (1/m3)
      - phi_p: Plasma potential (V)
 
      References:
+    - R. R. Peters and P. J. Wilbur, "Double Ion Production in Mercury Thrusters,"
+    Tech. Rep. CR-135019, NASA, 1976.
     - D. E.  Siegfried and P. J. Wilbur, "Phenomenological Model Describing
     Orificed, Hollow Cathode Operation," AIAA Journal, Vol. 21, No. 1, 1983,
     pp. 5–6.

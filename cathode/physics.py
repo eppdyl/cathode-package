@@ -26,7 +26,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Jun 1 00:58 2017
-Submodule of the cathode package containing common cathode parameter 
+Submodule of the cathode package containing common cathode parameter
 calculations and atomic physics methods.
 
 @author: cjw
@@ -71,7 +71,7 @@ def thermal_velocity(TeV,species='e'):
     Returns the thermal velocity, sqrt(kB T/m) for the species specified.
     Inputs:
         Temperature in eV
-        
+
     Optional Input:
         species, string specifying standard abbreviation for elemental species
             - DEFAULTS TO ELECTRON
@@ -82,7 +82,7 @@ def thermal_velocity(TeV,species='e'):
 
 def mean_velocity(TeV,species='e'):
     """
-    Returns the distribution-averaged species velocity assuming a Maxwellian 
+    Returns the distribution-averaged species velocity assuming a Maxwellian
     distribution at a temperature of TeV (in electron volts).
     Inputs:
         Temperature in eV
@@ -110,7 +110,7 @@ def bohm_velocity(TeV,species='Xe'):
 @np.vectorize
 def coulomb_log(ne,TeV,collision_type='ei'):
     """
-    Returns the Coulomb logarithm value as a function of plasma density and 
+    Returns the Coulomb logarithm value as a function of plasma density and
     electron temperature.  Collision type can be either electron-ion (default)
     or electron-electron.
     Inputs:
@@ -120,7 +120,7 @@ def coulomb_log(ne,TeV,collision_type='ei'):
         collision type string ('ei' or 'ee')
     Output:
         Value of Coulomb Logarithm
-        
+
     Ref: NRL Plasma Formulary (values translated from CGS to SI)
     """
     if collision_type == 'ei':

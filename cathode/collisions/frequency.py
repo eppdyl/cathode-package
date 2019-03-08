@@ -35,7 +35,7 @@ import cathode.collisions.cross_section as xsec
 def nu_ei(ne, TeV):
     """
     Returns the electron-ion collision frequency when both species are
-    near-Maxwellian. See, e.g. NRL plasma formulary, section "Collisions and
+    near-Maxwellian. See, e.g., NRL plasma formulary, section "Collisions and
     transport."
     Inputs:
         - Electron number density (1/m^3)

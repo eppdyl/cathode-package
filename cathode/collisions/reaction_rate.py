@@ -100,7 +100,7 @@ def beam_reaction_rate(xsec_spline, Ebeam):
     Returns the reaction rate for monoenergetic beam
     electrons and cross section described by xsec_spline.
     Inputs:
-        - xsec_pline: cross section spline created by
+        - xsec_spline: cross section spline created by
         create_cross_section_spline()
         - Ebeam: Beam energy (eV)
     Output:
