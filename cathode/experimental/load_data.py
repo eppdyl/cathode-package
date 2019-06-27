@@ -35,8 +35,9 @@ from . import files  # relative-import the *package* containing the templates
 import cathode.constants as cc
 import pandas as pd
 import numpy as np
+import os
 
-def load_all_data(cathode_idx,root_folder,pdf):
+def load_all_data():
     '''
     Loads the data for all the cathodes specified by name in cathode_idx. 
     Stores the corresponding results in the dataframe pdf ("pressure 
@@ -45,11 +46,29 @@ def load_all_data(cathode_idx,root_folder,pdf):
     FYI - There are NO error checks. The cathode_idx variable should correspond
     to the same idx specified in the datafile_idx.pkl...
     
-    Inputs:
-    - cathode_idx: a list of cathode names over which to iterate
-    - root_folder: the root folder for this computer
-    - pdf: an empty pandas frame
     '''
+    ### Pandas representation...
+    # idx: name of the cathode
+    idx = ['NSTAR','NEXIS','Salhi','Salhi-Ar','Salhi-Xe','Salhi-Ar-1.21','Salhi-Ar-0.76','Siegfried','AR3','EK6','SC012','Friedly','T6']
+    cathode_idx = ['NSTAR','NEXIS','Salhi','Siegfried','AR3','EK6','SC012','Friedly','T6']
+
+    # col: name of the columns
+    # Id -> discharge current
+    # mdot -> mass flow rate
+    # P -> pressure
+    # do -> orifice diameter
+    # Lo -> orifice length
+    # species -> gas used
+    # corr -> P/mdot * do^2 for Siegfried and Wilbur
+    col = ['Id','mdot','P','do','Lo','mass','Tw','To','dc','eiz','corr','corr_up','corr_lo']
+
+    pdf = pd.DataFrame(index=idx, columns=col)
+
+    #### Load data
+    #root_folder = 'cathode-data'
+    root_folder = os.path.dirname(__file__)
+    root_folder = os.path.join(root_folder,'files','cathode-data')
+
     di_str = pkg_resources.open_binary(files,'datafile_index.pkl')
     df = pd.read_pickle(di_str)
 
@@ -61,7 +80,15 @@ def load_all_data(cathode_idx,root_folder,pdf):
 
         load_single_cathode(cat,datafile,nskip,dtype,pdf)
 
-    return 1
+    ## Make sure we fill the temperature array with an arbitrary temperature
+    ## when data is not available
+    for name in idx:
+        arr = pdf.Tw[name]
+        arr_idx = np.isnan(arr)
+        arr[arr_idx] = 1000
+        pdf.Tw[name] = arr
+
+    return pdf
 
 def load_single_cathode(cat,datafile,nskip,dtype,pdf):
     '''
