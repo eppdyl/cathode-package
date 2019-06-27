@@ -1,5 +1,8 @@
 import os
+import fnmatch
 from setuptools import setup, find_packages
+from setuptools.command.build_py import build_py as build_py_orig
+
 
 def package_files(directory):
     paths = []
@@ -15,7 +18,7 @@ setup(name='cathode',
       description='Hollow cathode modeling package',
       author='EPPDyL',
       license='None',
+      package_data={'': extra_files},
       packages=find_packages(),
-      ackage_data={'': extra_files},
       install_requires=['numpy', 'scipy'],
       zip_safe=False)
