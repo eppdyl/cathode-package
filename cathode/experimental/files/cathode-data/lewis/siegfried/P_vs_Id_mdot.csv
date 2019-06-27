@@ -1,0 +1,24 @@
+############################
+### DOCUMENT
+# [1] P. J. Wilbur, “Ion and advanced electric thruster research,” CR-165253, 1980.
+# [2] Siegfried, D. E., Wilbur, P. J. "Phenomenological model describing orificed, hollow cathode operation," 15th IEPC, 1981 
+# [3] Siegfried, D. E. "A Phenomenological Model for Orificed Hollow Cathodes", Ph.D. thesis, Colorado State University, 1982 
+# ### DATA
+# Id (A), mdot (mA), P (Torr), Propellant mass (amu), do (mm), Tw (degC), Lo (mm)
+### Notes
+# Mercury cathode with a 0.76mm diameter orifice
+# Table p. 14 of Ref. [1], p.4 of Ref. [2]. 
+# Temperature data for the cases at 3.3 A are from Ref. [2] 
+# Orifice length is from Ref. [3], p.130
+# The insert temperature for the experiments at fixed Id = 3.31 A but varying mass flow rate are taken to be the same as the one reported for 3.31 A
+############################
+Id,mdot,P,mass,do,Tw,Lo,dc
+1.27,102,3.6,200.59,0.76,965.0,1.8,3.9
+2.30,102,4.6,200.59,0.76,1009.0,1.8,3.9
+3.31,106,5.5,200.59,0.76,1039.0,1.8,3.9
+4.30,105,6.2,200.59,0.76,1070.0,1.8,3.9
+3.30,110,5.8,200.59,0.76,1039,1.8,3.9
+3.29,78,4.1,200.59,0.76,1051,1.8,3.9
+3.31,62,3.2,200.59,0.76,1057,1.8,3.9
+3.26,35,1.8,200.59,0.76,1067,1.8,3.9
+3.32,25,1.3,200.59,0.76,1071,1.8,3.9

@@ -1,0 +1,50 @@
+############################
+### DOCUMENT
+# D. E. Siegfried, “A Phenomenological Model for Orificed Hollow Cathodes,” Colorado State University, 1982.
+# P. J. Wilbur, “Advanced Ion Thruster Research,”  NASA CR-168340, 1984.
+### SOFTWARE
+# Plot digitized using Engauge Digitizer
+### CAPTION
+# Internal Pressure - Flow Rate Correlation 
+# Internal pressure/Flow rate correlation for argon
+# Internal pressure/Flow rate correlation for xenon 
+### DATA
+# Id (A), P/(mdot/do^2) (Torr - mm^2 / mA),  [P/(mdot/do^2) (Torr - mm^2 / mA)]_upper, [P/(mdot/do^2) (Torr - mm^2 / mA)]_lower, species (n/a)
+### Notes
+# Mercury: The boundaries for the mass flow rates are 90 mA and 450 mA
+# Argon: The correlation varies with flows from 50 mA to 1300 mA and orifice diameters of 0.34 mm to 1.0 mm. The lower and upper bounds are given as corr_up and corr_low 
+# Xenon: The correlation varies with flows from 50 mA to 1300 mA and orifice diameters of 0.25 mm to 1.0 mm. The lower and upper bounds are given as corr_up and corr_low 
+############################
+Id,do,corr,corr_low,corr_high,species
+0.0,0.51,0.0101366,0.008482,0.0115865,Hg
+0.30,0.51,0.0150234,,,Hg
+0.50,0.51,0.017746,,,Hg
+0.70,0.51,0.019584,,,Hg
+1.00,0.51,0.0212269,,,Hg
+1.30,0.51,0.0262451,0.0243775,0.0287598,Hg
+2.30,0.51,0.0355983,0.0325921,0.0388995,Hg
+3.30,0.51,0.0421341,0.0398652,0.0448619,Hg
+0.0,0.76,0.0116282,0.0100595,0.0139258,Hg
+0.30,0.76,0.0193319,,,Hg
+0.50,0.76,0.0200886,,,Hg
+0.70,0.76,0.0218611,,,Hg
+1.00,0.76,0.0247655,,,Hg
+1.30,0.76,0.0212152,0.0199291,0.0231647,Hg
+2.30,0.76,0.029569,0.0272345,0.032092,Hg
+3.30,0.76,0.0362851,0.0344175,0.0392995,Hg
+0.0,1.00,0.0138719,0.0115865,0.0160631,Hg
+1.28,1.00,0.0235902,0.0214769,0.0269651,Hg
+2.34,1.00,0.0303563,0.0280668,0.0332233,Hg
+3.35,1.00,0.0372525,0.0333944,0.0407911,Hg
+0.0,,0.00490864,0.00343667,0.00730145,Ar
+0.31,,0.00610683,0.0044505,0.00825426,Ar
+1.30,,0.00774725,0.00553881,0.00977199,Ar
+2.30,,0.0087132,0.00662745,0.0112284,Ar
+3.00,,0.00958616,0.0073167,0.012163,Ar
+4.30,,0.010216,0.00794655,0.0131613,Ar
+0,,0.00754275,0.00533326,0.0113516,Xe
+0.30,,0.0110786,0.00864057,0.0148119,Xe
+1.30,,0.01565,0.0109257,0.0199922,Xe
+2.30,,0.0186981,0.0135173,0.0235743,Xe
+3.30,,0.0227356,0.0164125,0.0295165,Xe
+4.30,,0.025707,0.0193833,0.0347741,Xe
