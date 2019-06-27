@@ -39,8 +39,11 @@ from scipy.constants import (speed_of_light,Boltzmann,electron_volt,
                              elementary_charge,electron_mass,torr,
                              atomic_mass,epsilon_0,gas_constant,h,pi)
 from scipy.special import jn_zeros
+from scipy.interpolate import splrep,splev
 
 import numpy as np
+import os
+import math
 
 ###############################################################################
 #       Physical constants/Energy conversions/Mass conversions
@@ -123,19 +126,6 @@ BesselJ01 = jn_zeros(0,1)[0]
 ###############################################################################
 #                               Atomic Data
 ###############################################################################
-# Lennard-Jones parameters for some select elements
-# Sorted as [sigma,kb/eps]
-class LJ:
-    Hg=[2.898e-10,851.]
-
-    # Allow for dictionary-like access of element data
-    @classmethod
-    def species(self,name):
-        if name in self.__dict__:
-            return np.array(self.__dict__[name])
-        else:
-            raise KeyError
-
 #Elemental mass numbers embedded in "static" class
 class M:
     #electron (for use in species access)
@@ -287,6 +277,59 @@ class M:
         else:
             raise KeyError
 
+# Lennard-Jones parameters for some select elements
+# Sorted as [sigma,kb/eps]
+class LJ:
+    Hg=[2.898e-10,851.]
+
+    # Allow for dictionary-like access of element data
+    @classmethod
+    def species(self,name):
+        if name in self.__dict__:
+            return np.array(self.__dict__[name])
+        else:
+            raise KeyError
+
+    @classmethod
+    def viscosity(self,name):
+        ### Hg viscosity
+        folder = os.path.dirname(__file__)
+        folder = os.path.join(folder,'experimental','files')
+        fname = os.path.join(folder,'collision-integrals-lj.csv')
+        data = np.genfromtxt(fname,delimiter=',',names=True)
+
+        Mass = M.species(name)
+        sig_lj, kbeps = self.species(name)
+
+        Tlj = data['Tstar']
+        omega22_data = splrep(Tlj,data['omega22'])
+        omega23_data = splrep(Tlj,data['omega23'])
+        omega24_data = splrep(Tlj,data['omega24'])
+
+        Tvec = np.arange(300,4001,10)
+
+        omega_hs = lambda l,s: math.factorial(s+1)/2. * (1. - 1./2.*(1. + (-1)**l)/(1.+l))*np.pi*sig_lj**2
+        omega_hs22 = omega_hs(2,2)
+        omega_hs23 = omega_hs(2,3)
+        omega_hs24 = omega_hs(2,4)
+
+        fac = np.sqrt(Boltzmann*Tvec/(np.pi*Mass))
+        omega22 = fac * splev(Tvec/kbeps,omega22_data) * omega_hs22
+        omega23 = fac * splev(Tvec/kbeps,omega23_data) * omega_hs23
+        omega24 = fac * splev(Tvec/kbeps,omega24_data) * omega_hs24
+
+        b11 = 4.* omega22
+        b12 = 7.*omega22 - 2*omega23
+        b22 = 301./12.*omega22 - 7*omega23 + omega24
+
+        mu_lj = 5.*Boltzmann*Tvec/2.*(1./b11 + b12**2./b11 * 1./(b11*b22-b12**2.))
+
+        return Tvec,mu_lj
+
+
+
 def R_specific(species):
     #specific gas constant in J/(kg-K) for the species given
     return kB/M.species(species)
+
+
