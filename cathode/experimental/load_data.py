@@ -88,7 +88,10 @@ def load_all_data():
         arr[arr_idx] = 1000
         pdf.Tw[name] = arr
 
-    return pdf
+    ## Extract unique data 
+    pdf_extract = pdf[(pdf.index != 'Salhi') & (pdf.index != 'Salhi-Ar') ]
+
+    return pdf_extract
 
 def load_single_cathode(cat,datafile,nskip,dtype,pdf):
     '''
