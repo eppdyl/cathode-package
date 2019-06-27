@@ -1,0 +1,3 @@
+[submodule "cathode/experimental/files/cathode-data"]
+	path = cathode/experimental/files/cathode-data
+	url = http://github.com/pytaunay/cathode-data
