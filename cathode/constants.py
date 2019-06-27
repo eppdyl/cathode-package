@@ -67,6 +67,9 @@ eV = electron_volt
 #permittivity of free space (SI)
 epsilon0 = epsilon_0
 
+# permeability of free space (SI)
+mu0 = 4*np.pi*1e-7
+
 #electron charge (SI)
 e = elementary_charge
 
