@@ -57,6 +57,13 @@ def viscosity(T,species='Xe-Goebel',units='poise', T_LJ=None, MU_LJ=None):
     """
     if species == 'Hg':
         mu = np.interp(T,T_LJ,MU_LJ)
+        
+        units_dict = {'poise' : 10.,
+                      'centipoise' : 1000.0,
+                      'Pa-s' : 1.0,
+                      'kg/(m-s)' : 1.0}
+
+        mu = zeta*units_dict[units]
     else:
         #species dictionary: [Tc,upsilon]
         species_dict = {'Xe-Goebel' :   [289.7,None],
