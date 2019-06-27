@@ -40,6 +40,8 @@ from scipy.constants import (speed_of_light,Boltzmann,electron_volt,
                              atomic_mass,epsilon_0,gas_constant,h,pi)
 from scipy.special import jn_zeros
 
+import numpy as np
+
 ###############################################################################
 #       Physical constants/Energy conversions/Mass conversions
 ###############################################################################
@@ -121,6 +123,18 @@ BesselJ01 = jn_zeros(0,1)[0]
 ###############################################################################
 #                               Atomic Data
 ###############################################################################
+# Lennard-Jones parameters for some select elements
+# Sorted as [sigma,kb/eps]
+class LJ:
+    Hg=[2.898e-10,851.]
+
+    # Allow for dictionary-like access of element data
+    @classmethod
+    def species(self,name):
+        if name in self.__dict__:
+            return np.array(self.__dict__[name])
+        else:
+            raise KeyError
 
 #Elemental mass numbers embedded in "static" class
 class M:
