@@ -63,7 +63,7 @@ def viscosity(T,species='Xe-Goebel',units='poise', T_LJ=None, MU_LJ=None):
                       'Pa-s' : 1.0,
                       'kg/(m-s)' : 1.0}
 
-        mu = zeta*units_dict[units]
+        mu *= units_dict[units]
     else:
         #species dictionary: [Tc,upsilon]
         species_dict = {'Xe-Goebel' :   [289.7,None],
@@ -93,6 +93,25 @@ def viscosity(T,species='Xe-Goebel',units='poise', T_LJ=None, MU_LJ=None):
     
     return mu
     
+def Kn(ng, ds, species):
+    ''' Calculates the Knudsen number
+    Inputs:
+        - ng: gas density (1/m3)
+        - vdw: van der Waals radius of the gas (m)
+        - ds: length-scale of interest
+    '''
+    if species == 'Xe':
+        vdw = 216e-12
+    elif species == 'Ar':
+        vdw = 188e-12
+    else:
+        raise NotImplemented
+    
+    t = np.sqrt(2) * np.pi * ng * vdw**2 * ds
+    
+    return 1/t
+
+
 
 def reynolds_number(mdot,do,T,species,T_LJ = None, MU_LJ = None):
     '''
