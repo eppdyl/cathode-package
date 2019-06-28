@@ -93,13 +93,15 @@ def viscosity(T,species='Xe-Goebel',units='poise', T_LJ=None, MU_LJ=None):
     
     return mu
     
-def Kn(ng, ds, species):
-    ''' Calculates the Knudsen number
+def knudsen_number(ng, ds, species):
+    ''' 
+    Calculates the Knudsen number
     Inputs:
         - ng: gas density (1/m3)
         - vdw: van der Waals radius of the gas (m)
         - ds: length-scale of interest
     '''
+    # TODO: Move van der waals radius to its own location / have a gas object
     if species == 'Xe':
         vdw = 216e-12
     elif species == 'Ar':
@@ -111,13 +113,25 @@ def Kn(ng, ds, species):
     
     return 1/t
 
+def santeler_theta(Kn):
+    ''' 
+    Calculates the proportion of viscous flow vs. molecular flow.
+    Ref:  D. J. Santeler, "Exit loss in viscous tube flow," J. Vac. Sci. 
+    Technol. A Vacuum, Surfaces, Film., vol. 4, no. 3, pp. 348–352, 1986.
+    Eqns 16-17
+    
+    Inputs:
+        - Knudsen number, Kn
+    '''
+    ka = 28
+    return (ka*Kn)/(ka*Kn + 1)
 
 
 def reynolds_number(mdot,do,T,species,T_LJ = None, MU_LJ = None):
     '''
-    Calculate the Reynolds number. The viscosity is either calculated with a
+    Calculates the Reynolds number. The viscosity is either calculated with a
     fit (e.g. for argon and xenon) or with collision integrals. 
-    The function can be called for multiple temperatures, but need a single
+    The function can be called for multiple temperatures, but needs a single
     mass flow rate and tube diameter.
     Inputs:
         - mdot: mass flow rate (kg/s)
