@@ -38,11 +38,10 @@ from scipy.interpolate import RegularGridInterpolator
 
 import cathode.constants as cc
 from cathode.models.taunay_et_al_core.collision_holder import collision_holder
+from cathode.models.taunay_et_al_core.compute_orifice import orifice_density_wrapper
+from cathode.models.taunay_et_al_core.compute_insert import insert_density_wrapper
 
-from compute_core_orifice import orifice_density_wrapper
-from compute_core_insert import insert_density_wrapper
-
-def create_h5file(Idvec, mdotvec, dc_db, do_db, Lo_db, ppos_db, eiz_db, TgK,
+def create_h5file(Idvec, mdotvec, dc_db, do_db, Lo_db, Lupstream, Lemitter, eiz_db, TgK,
         species, cathode_name = None):
 
     if cathode_name is not None:
@@ -56,10 +55,11 @@ def create_h5file(Idvec, mdotvec, dc_db, do_db, Lo_db, ppos_db, eiz_db, TgK,
     f.create_group(species + '/simulations' + '/results')
 
     # Create the geometry dataset
-    geometry_names = ['insert_diameter', 'orifice_diameter', 'orifice_length',
+    geometry_names = ['insert_diameter', 'insert_length', 'orifice_diameter', 'orifice_length',
             'pressure_tap_position']
-    geometry_dt = np.dtype({'names': geometry_names, 'formats':[(np.float64)]*4})
-    geometry = np.rec.fromarrays([dc_db, do_db, Lo_db, ppos_db],
+    geometry_dt = np.dtype({'names': geometry_names,
+        'formats':[(np.float64)]*len(geometry_names)})
+    geometry = np.rec.fromarrays([dc_db, Lemitter, do_db, Lo_db, Lupstream],
             dtype=geometry_dt)
     f.create_dataset('geometry', data=geometry)
 
@@ -79,6 +79,8 @@ def solve(Idvec,mdotvec,
                                    dc_db,
                                    do_db,
                                    Lo_db,
+                                   Lupstream,
+                                   Lemitter,
                                    eiz_db,
                                    TgK,
                                    phi_s = None,
@@ -116,6 +118,9 @@ def solve(Idvec,mdotvec,
         print(str(e))
         return
 
+    ### If the temperature is passed as a float, truncate to integer
+    TgK = (int)(TgK)
+
     ### Convert to SI the data from the database / input
     M = M_db * cc.atomic_mass
     dc = dc_db * 1e-3
@@ -135,30 +140,32 @@ def solve(Idvec,mdotvec,
     # Try to pre-read if the file exists 
     f = None
     try:
-        f = h5py.File(data_file,'r')
+        f = h5py.File(data_file,'a')
         # TODO: CHECK THAT THERE ARE ORIFICE RESULTS
 
     except:
         # If it raises an error, check if it exists. If it does, then we have
         # bigger problems and we exit 
-        if os.path.exists(data_file):
-            str_err = "ERROR "
-            str_err += "Cannot open " + str(data_file)
-            raise RuntimeError(str_err)
+        if data_file is not None:
+            if os.path.exists(data_file):
+                str_err = "ERROR "
+                str_err += "Cannot open " + str(data_file)
+                raise RuntimeError(str_err)
 
-        # Otherwise the file did not exist, and we just had to create it and
+        # Otherwise the file did not exist or was not specified and we just had to create it and
         # populate it
         # If the file did not exist, then we will need to run the orifice
         # cases. We then use Idvec and mdotvec as the Id and mdot in the HDF5
         # file
-        create_h5file(Idvec, mdotvec, dc_db, do_db, Lo_db, ppos_db, eiz_db, TgK,
+        create_h5file(Idvec, mdotvec, dc_db, do_db, Lo_db, Lupstream,
+                Lemitter, eiz_db, TgK,
         species, cathode_name)
         run_orifice = True
 
         if cathode_name is None:
-            f = h5py.File("tmp.h5",'rw')
+            f = h5py.File("tmp.h5",'a')
         else:
-            f = h5py.File(cathode_name + ".h5",'rw')
+            f = h5py.File(cathode_name + ".h5",'a')
 
     if run_orifice:
         ### Pre-compute the orifice density for a number of insert densities, 
@@ -166,7 +173,7 @@ def solve(Idvec,mdotvec,
         ngi_vec = np.linspace(20.,23.,10)
 
         print("Finding all orifice solutions...")
-        ngo_case = itertools.product(mdot_SI,
+        it = itertools.product(mdot_SI,
                 Idvec,
                 [M],
                 [dc], [do], [Lo],
@@ -175,18 +182,22 @@ def solve(Idvec,mdotvec,
                 [species],
                 [chold],
                 [TgK])
+        ngo_case = list(it)
         res = np.zeros((len(ngo_case),4))
-        with mp.Pool(processes=12) as pool:
+
+        ### Compute cases in parallel
+        # Make sure we don't spawn more processes than we need
+        procnum = None
+        if len(ngo_case) < os.cpu_count():
+            procnum = len(ngo_case) 
+
+        with mp.Pool(processes=procnum) as pool:
             res = pool.starmap(orifice_density_wrapper,ngo_case)
 
         print("...done")
 
         ### Save the results in the HDF5 file
         results_path = species + '/simulations' + '/results' + '/' + str(TgK)
-        if cathode_name is not None:
-            f = h5py.File(cathode_name + ".h5", "w")
-        else:
-            f = h5py.File("tmp.h5", "w")
         f.create_dataset(results_path + "/orifice", data=np.array(res))
 
     else:
