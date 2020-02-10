@@ -30,15 +30,50 @@ import numpy as np
 import pickle
 import multiprocessing as mp
 import itertools
+import h5py
+import os
 
 
 from scipy.interpolate import RegularGridInterpolator
 
 import cathode.constants as cc
+from cathode.models.taunay_et_al_core.collision_holder import collision_holder
 
-from collision_holder import collision_holder
 from compute_core_orifice import orifice_density_wrapper
 from compute_core_insert import insert_density_wrapper
+
+
+def create_h5file(Idvec, mdotvec, dc_db, do_db, Lo_db, ppos_db, eiz_db, TgK,
+        species, cathode_name = None):
+
+    if cathode_name is not None:
+        f = h5py.File(cathode_name + '.h5', 'w')
+    else:
+        f = h5py.File('tmp.h5', 'w')
+
+    conditions_path = species + '/simulations' + '/conditions'
+    results_path = species + '/simulations' + '/results'
+    f.create_group(conditions_path)
+    f.create_group(species + '/simulations' + '/results')
+
+    # Create the geometry dataset
+    geometry_names = ['insert_diameter', 'orifice_diameter', 'orifice_length',
+            'pressure_tap_position']
+    geometry_dt = np.dtype({'names': geometry_names, 'formats':[(np.float64)]*4})
+    geometry = np.rec.fromarrays([dc_db, do_db, Lo_db, ppos_db],
+            dtype=geometry_dt)
+    f.create_dataset('geometry', data=geometry)
+
+    # Create the conditions dataset
+    f.create_dataset(conditions_path + '/Id_orifice', data=Idvec)
+    f.create_dataset(conditions_path + '/mdot_orifice', data=mdotvec)
+
+    # Create the results groups
+    for Tg in [2000,3000,4000]:
+        f.create_group(results_path + "/" + str(Tg))
+
+    # Close the file
+    f.close()
 
 def solve(Idvec,mdotvec,
                                    M_db,
@@ -47,8 +82,9 @@ def solve(Idvec,mdotvec,
                                    Lo_db,
                                    eiz_db,
                                    TgK,
-                                   phi_s,
-                                   file_ngo = None
+                                   phi_s = None,
+                                   data_file = None,
+                                   cathode_name = None
                                    ):          
     '''
      Compute the case from an Id and mdot vector
@@ -95,10 +131,36 @@ def solve(Idvec,mdotvec,
     # Create a cross-section object
     chold = collision_holder(species)
 
-    ### Pre-compute the orifice density for a number of insert densities, 
-    ### discharge currents, and mass flow rates
-    ngi_vec = np.linspace(20.,23.,10)
-    if file_ngo is None:
+    ### Orifice results
+    run_orifice = False
+    # Try to pre-read if the file exists 
+    try:
+        f = h5py.File(data_file,'r')
+
+        # TODO: CHECK THAT THERE ARE ORIFICE RESULTS
+
+    except:
+        # If it raises an error, check if it exists. If it does, then we have
+        # bigger problems and we exit 
+        if os.path.exists(data_file):
+            str_err = "ERROR "
+            str_err += "Cannot open " + str(data_file)
+            raise RuntimeError(str_err)
+
+        # Otherwise the file did not exist, and we just had to create it and
+        # populate it
+        # If the file did not exist, then we will need to run the orifice
+        # cases. We then use Idvec and mdotvec as the Id and mdot in the HDF5
+        # file
+        create_h5file(Idvec, mdotvec, dc_db, do_db, Lo_db, ppos_db, eiz_db, TgK,
+        species, cathode_name)
+        run_orifice = True
+    
+    if run_orifice:
+        ### Pre-compute the orifice density for a number of insert densities, 
+        ### discharge currents, and mass flow rates
+        ngi_vec = np.linspace(20.,23.,10)
+
         print("Finding all orifice solutions...")
         ngo_case = itertools.product(mdot_SI,
                 Idvec,
@@ -109,79 +171,59 @@ def solve(Idvec,mdotvec,
                 [species],
                 [chold],
                 [TgK])
-        print(list(ngo_case))
-
-        ngo_case = []
-        for mdot in mdot_SI:
-            for Id in Idvec:
-                for ngi in ngi_vec:
-                    ngo_case.append((mdot,
-                                     Id,
-                                     M,
-                                     dc,do,Lo,
-                                     eiz_db,
-                                     ngi,
-                                     species,
-                                     chold,
-                                     TgK))
         res = np.zeros((len(ngo_case),4))
-        print(ngo_case)
-#        with mp.Pool(processes=12) as pool:
-#            res = pool.starmap(orifice_density_wrapper,ngo_case)
-#
-#        ### TODO: BETTER SOLUTION THAN DUMPING A PKL FILE
-#        print("...done")
+        with mp.Pool(processes=12) as pool:
+            res = pool.starmap(orifice_density_wrapper,ngo_case)
+
+        print("...done")
 #        pickle.dump(res,open('tmp.pkl','wb'))
 #    else:
 #        res = pickle.load(open(file_ngo,'rb'))
-#    
-#    # x,y,z,V: mdot,Id,ng_i,ng_o
-#    res = np.array(res)
-#    x = np.unique(res[:,0])
-#    x = np.sort(x)
-#    y = np.unique(res[:,1])
-#    y = np.sort(y)
-#    z = np.unique(res[:,2])
-#    z = np.sort(z)
-#    
-#    print("Creating interpolating function...")
-#    V = np.zeros((len(x),len(y),len(z)))
-#    for ii, mdot in enumerate(x):
-#        for jj, Id in enumerate(y):
-#            for kk, ngi in enumerate(z):
-#                #print(ii,jj,kk)
-#                idx = kk + jj * len(z) + ii * len(z)*len(y)
-#                V[ii,jj,kk] = res[idx][-1]  
-#                
-#    ngo_fn = RegularGridInterpolator((x,y,z), V, 
-#                                     bounds_error = False)
-#    print("...done")
-#    
-#    ### Run all cases 
-#    # Create a list of all cases to run
-#    list_case = []
-#    for mdot in mdot_SI:
-#        for Id in Idvec:
-#            list_case.append((mdot,
-#                              Id,
-#                              M,
-#                              dc,do,Lo,
-#                              eiz_db,
-#                              ngo_fn,
-#                              species,
-#                              chold,
-#                              TgK,
-#                              phi_s))
-#
-#    print("Running cases...")
-#    with mp.Pool() as pool:
-#        res = pool.starmap(insert_density_wrapper,list_case)
-#    print("...done")
-#
-#    return res
-#    
-#
-#    
-#    
+    
+    ### Create an interpolator to find orifice density from mass flow rate,
+    ### discharge current, and insert density. 
+    # Inputs: x,y,z are mass flow rate, discharge current, insert density
+    # Output: orifice density
+    # x,y,z,V: mdot,Id,ng_i,ng_o
+    res = np.array(res)
+    x = np.unique(res[:,0])
+    x = np.sort(x)
+    y = np.unique(res[:,1])
+    y = np.sort(y)
+    z = np.unique(res[:,2])
+    z = np.sort(z)
+    
+    print("Creating interpolating function...")
+    V = np.zeros((len(x),len(y),len(z)))
+    for ii, mdot in enumerate(x):
+        for jj, Id in enumerate(y):
+            for kk, ngi in enumerate(z):
+                #print(ii,jj,kk)
+                idx = kk + jj * len(z) + ii * len(z)*len(y)
+                V[ii,jj,kk] = res[idx][-1]  
+                
+    ngo_fn = RegularGridInterpolator((x,y,z), V, 
+                                     bounds_error = False)
+    print("...done")
+    
+    ### Run all cases 
+    # Create a list of all cases to run
+    list_case = []
+    list_case = itertools.product(mdot_SI,
+                Idvec,
+                [M],
+                [dc], [do], [Lo],
+                [eiz_db],
+                [ngo_fn],
+                [species],
+                [chold],
+                [TgK],
+                phi_s)
 
+    # Run the cases
+    print("Running cases...")
+    with mp.Pool() as pool:
+        res = pool.starmap(insert_density_wrapper,list_case)
+    print("...done")
 
+    return res
