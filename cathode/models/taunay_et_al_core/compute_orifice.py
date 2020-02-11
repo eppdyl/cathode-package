@@ -114,42 +114,14 @@ def orifice_density_wrapper(mdot,
     
     
     ### Solve the orifice equation for ng
-    ### TODO CHECK BOUNDING PROCESS
+    # Simple bounding of ng_orifice
     # Upper bound for ng_orifice: cannot exceed insert density, and have to 
     # ensure that alpha is always positive
     # We check the latter condition later
-#    ngo_max = mdot / (np.pi * ro**2 * M) * 1/np.sqrt(gam * Rg * TgK)
-#    lngo_max = np.min([np.log10(ngo_max),log_ng_i])
+    # Lower bound for ng_orifice: hard value
     lngo_max = log_ng_i
     lngo_min = 17
     
-#    # Lower bound for ng_orifice: ensures that alpha is always less than 1
-#    # There should be only one zero because the function that results from the
-#    # condition alpha < 1 is strictly increasing
-#    t0_bound = 1/(gam*Rg)*(mdot / (np.pi * ro**2 * M))**2
-#    t1_bound = lambda lng: TeK(10**lng,do,species) + TgK
-#    t2_bound = lambda lng: t0_bound/(10**lng)**2
-#    
-#    try:
-#        lngo_min = next(bisect_next(lambda lng: t1_bound(lng) - t2_bound(lng),
-#                             17,
-#                             lngo_max,
-#                             0.1,
-#                             xtol=1e-8,
-#                             atol=1e-8))[0]
-#    except:
-#        # There were no solutions!
-#        ng_o = np.nan
-#        return np.array([mdot,Id,ng_i,ng_o])
-#
-#    # If the lower bound is greater than the upper bound: no solutions
-#    # This should not happen by construction, but better be safe
-#    if lngo_min > lngo_max:
-#        ng_o = np.nan
-#        return np.array([mdot,Id,ng_i,ng_o])
-
-    # If the bounding process worked, let's try to find a solution
-#    print(orifice_equation(17),orifice_equation(log_ng_i))
     ### Bisect the equation; if we can't, then there are no solutions
     try:
         l_ngo = next(bisect_next(lambda log_ng: orifice_equation(log_ng),
@@ -164,7 +136,6 @@ def orifice_density_wrapper(mdot,
         return np.array([mdot,Id,ng_i,ng_o])
     
     # Verify that the solution works with the ionization fraction
-    # It should by construction, but one is never too safe
     ng_o = -1
     l_ao = alpha_o(10**l_ngo)
         
@@ -173,7 +144,7 @@ def orifice_density_wrapper(mdot,
     else:
         ng_o = 10 ** l_ngo
         
-    # If no solutions are satisfactory, then return a NaN
+    # If no solutions are satisfactory, then return a NaN 
     if ng_o < 0:
         ng_o = np.nan
     
