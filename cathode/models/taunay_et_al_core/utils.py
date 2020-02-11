@@ -50,19 +50,19 @@ def check_answer(ng_i,ret_all):
     density is less than insert neutral density, and that orifice electron
     temperature is larger than that of the insert.
     """
-        ng_o = ret_all['ng_o']
-        alpha_o = ret_all['alpha_o']
-        Te_o = ret_all['Te_o']
-        
-        alpha_i = ret_all['alpha_i']
-        Te_i = ret_all['Te_i']
+    ng_o = ret_all['ng_o']
+    alpha_o = ret_all['alpha_o']
+    Te_o = ret_all['Te_o']
+    
+    alpha_i = ret_all['alpha_i']
+    Te_i = ret_all['Te_i']
 
-        b_ai = alpha_i < 0 or alpha_i > 1
-        b_ao = alpha_o < 0 or alpha_o > 1
-        b_ng = ng_i < ng_o
-        b_Te = Te_i > Te_o    
-        
-        if(b_ai or b_ao or b_ng or b_Te):
-            return False
-        else:
-            return True
+    b_ai = alpha_i < 0 or alpha_i > 1
+    b_ao = alpha_o < 0 or alpha_o > 1
+    b_ng = ng_i < ng_o
+    b_Te = Te_i > Te_o    
+    
+    if(b_ai or b_ao or b_ng or b_Te):
+        return False
+    else:
+        return True

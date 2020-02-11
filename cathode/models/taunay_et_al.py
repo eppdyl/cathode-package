@@ -82,7 +82,8 @@ def solve(Idvec,mdotvec,
                                    eiz_db,
                                    TgK,
                                    data_file,
-                                   phi_s = None
+                                   phi_s = None,
+                                   force_orifice_calc = False
                                    ):          
     '''
      Compute the case from an Id and mdot vector
@@ -100,10 +101,15 @@ def solve(Idvec,mdotvec,
         - TgK: neutral gas temperature assumed (K)
         - data_file: location of HDF5 file that contains results.
         - phi_s: vector of sheath potentials to test (V). Optional.
+        - force_orifice_calc: a boolean to force computations of orifice
+          results. Optional.
     If phi_s is NOT specified, then the code will run only the orifice cases.
     If phi_s is specified, then the code will try to read data_file to obtain
     orifice results. If they do not exist, they will be created, saved, and
     used for the insert simulation.
+    If force_orifice_calc is used, the orifice cases will be computed
+    regardless of the presence of existing results. If orifice results already
+    exist, they will be overwritten. Be careful!
     '''    
     ### Check that we have a single gas, single geometry, single temperature
     try:
@@ -156,11 +162,11 @@ def solve(Idvec,mdotvec,
             return
 
         ### Are there orifice results already?
-        try:
-            # If there are, grab them and convert to Numpy array
-            orifice_results = f.get(results_path + '/orifice')
+        orifice_results = f.get(results_path + '/orifice')
+        # If there are, grab them and convert to Numpy array
+        if orifice_results is not None:
             orifice_results = np.array(orifice_results)
-        except:
+        else:
             # If not, then we will have to run the orifice simulation
             run_orifice = True
     else:
@@ -170,8 +176,9 @@ def solve(Idvec,mdotvec,
         create_h5file(Idvec, mdotvec, dc_db, do_db, Lo_db, Lupstream,
                 Lemitter, eiz_db, TgK, species, data_file)
         run_orifice = True
+        f = h5py.File(data_file,'a')
 
-    if run_orifice:
+    if run_orifice or force_orifice_calc:
         ### Pre-compute the orifice density for a number of insert densities, 
         ### discharge currents, and mass flow rates
         ngi_vec = np.linspace(20.,23.,10)
@@ -187,16 +194,14 @@ def solve(Idvec,mdotvec,
                 [chold],
                 [TgK])
         ngo_case = list(it)
-        res = np.zeros((len(ngo_case),4))
+        orifice_results = np.zeros((len(ngo_case),4))
 
         ### Compute cases in parallel
         # Make sure we don't spawn more processes than we need
         procnum = find_number_processes(ngo_case) 
 
-        #with mp.Pool(processes=procnum) as pool:
-        #    res = pool.starmap(orifice_density_wrapper,ngo_case)
-        orifice_results = orifice_density_wrapper(*ngo_case[0]) 
-        orifice_results = np.array(orifice_results)
+        with mp.Pool(processes=procnum) as pool:
+            orifice_results = pool.starmap(orifice_density_wrapper,ngo_case)
 
         print("...done")
 
@@ -212,6 +217,30 @@ def solve(Idvec,mdotvec,
     ### If we do specify the sheath potentials, then we create an interpolator
     ### based on orifice data, then solve for the insert solution.
     if (phi_s is not None):
+        ### Check that the specified Idvec and mdotvec are within the orifice
+        ### Idvec and mdotvec
+        conditions_path = species + '/simulations' + '/conditions'
+        Id_o = f.get(conditions_path + '/Id_orifice') 
+        Id_o = np.array(Id_o)
+        mdot_o = f.get(conditions_path + '/mdot_orifice') 
+        mdot_o = np.array(mdot_o)
+
+        Id_o_min = np.min(Id_o)
+        Id_o_max = np.max(Id_o)
+        mdot_o_min = np.min(mdot_o)
+        mdot_o_max = np.max(mdot_o)
+
+        b_Id = (np.min(Idvec) < Id_o_min) or (np.max(Idvec) > Id_o_max)
+        b_mdot = (np.min(mdotvec) < mdot_o_min) or (np.max(mdotvec) >
+                mdot_o_max)
+        if b_Id or b_mdot:
+            str_err = "ERROR "
+            str_err += "Cannot run insert cases that are out of the existing "
+            str_err += "bounds of the orifice cases: "
+            str_err += "(" + str(Id_o_min) + " < Id < " + str(Id_o_max) + "and "
+            str_err += str(mdot_o_min) + " < mdot < " + str(mdot_o_max) + ")"
+            raise RuntimeError(str_err)
+
         ### Create an interpolator to find orifice density from mass flow rate,
         ### discharge current, and insert density. 
         # Inputs: x,y,z are mass flow rate, discharge current, insert density
@@ -268,4 +297,5 @@ def solve(Idvec,mdotvec,
         f.create_dataset(results_path + "/insert", data=np.array(res))
 
     else:
+        f.close()
         return
