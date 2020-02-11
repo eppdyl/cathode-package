@@ -246,7 +246,6 @@ def solve(Idvec,mdotvec,
         # Inputs: x,y,z are mass flow rate, discharge current, insert density
         # Output: orifice density
         # x,y,z,V: mdot,Id,ng_i,ng_o
-        #res = np.array(res)
         x = np.unique(orifice_results[:,0])
         x = np.sort(x)
         y = np.unique(orifice_results[:,1])
