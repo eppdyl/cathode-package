@@ -40,14 +40,12 @@ import cathode.constants as cc
 from cathode.models.taunay_et_al_core.collision_holder import collision_holder
 from cathode.models.taunay_et_al_core.compute_orifice import orifice_density_wrapper
 from cathode.models.taunay_et_al_core.compute_insert import insert_density_wrapper
+from cathode.models.taunay_et_al_core.utils import find_number_processes
 
 def create_h5file(Idvec, mdotvec, dc_db, do_db, Lo_db, Lupstream, Lemitter, eiz_db, TgK,
-        species, cathode_name = None):
+        species, data_file):
 
-    if cathode_name is not None:
-        f = h5py.File(cathode_name + '.h5', 'w')
-    else:
-        f = h5py.File('tmp.h5', 'w')
+    f = h5py.File(data_file, 'w')
 
     conditions_path = species + '/simulations' + '/conditions'
     results_path = species + '/simulations' + '/results'
@@ -83,9 +81,8 @@ def solve(Idvec,mdotvec,
                                    Lemitter,
                                    eiz_db,
                                    TgK,
-                                   phi_s = None,
-                                   data_file = None,
-                                   cathode_name = None
+                                   data_file,
+                                   phi_s = None
                                    ):          
     '''
      Compute the case from an Id and mdot vector
@@ -101,14 +98,19 @@ def solve(Idvec,mdotvec,
         - Lo_db: cathode orifice length (mm)
         - eiz_db: ionization energy of the gas (eV)
         - TgK: neutral gas temperature assumed (K)
-        - phi_s: vector of sheath potentials to test (V)
-        - file_ngo: pickle file that contains the results of a sweep calculation
-        of the orifice neutral gas density as a function of current, mass flow
-        rate, and insert neutral density
+        - data_file: location of HDF5 file that contains results.
+        - phi_s: vector of sheath potentials to test (V). Optional.
+    If phi_s is NOT specified, then the code will run only the orifice cases.
+    If phi_s is specified, then the code will try to read data_file to obtain
+    orifice results. If they do not exist, they will be created, saved, and
+    used for the insert simulation.
     '''    
     ### Check that we have a single gas, single geometry, single temperature
     try:
-        for x in list([M_db, dc_db, do_db, Lo_db, eiz_db, TgK]):
+        list_test = list([M_db, dc_db, do_db, Lo_db, Lupstream, Lemitter, 
+            eiz_db, TgK]) 
+
+        for x in list_test:
             if type(x) is list or type(x) is np.ndarray:
                 str_err = "ERROR "
                 str_err += "No more than one gas, geometry, and temperature "
@@ -119,6 +121,7 @@ def solve(Idvec,mdotvec,
         return
 
     ### If the temperature is passed as a float, truncate to integer
+    ### otherwise it trips up the correlation function
     TgK = (int)(TgK)
 
     ### Convert to SI the data from the database / input
@@ -135,37 +138,38 @@ def solve(Idvec,mdotvec,
     # Create a cross-section object
     chold = collision_holder(species)
 
-    ### Orifice results
+    ###########################################################################
+    ### Orifice results #######################################################
+    ###########################################################################
     run_orifice = False
-    # Try to pre-read if the file exists 
+    orifice_results = None
     f = None
-    try:
-        f = h5py.File(data_file,'a')
-        # TODO: CHECK THAT THERE ARE ORIFICE RESULTS
+    results_path = species + '/simulations' + '/results' + '/' + str(TgK)
 
-    except:
-        # If it raises an error, check if it exists. If it does, then we have
-        # bigger problems and we exit 
-        if data_file is not None:
-            if os.path.exists(data_file):
-                str_err = "ERROR "
-                str_err += "Cannot open " + str(data_file)
-                raise RuntimeError(str_err)
+    ### Does the file exist?
+    if os.path.exists(data_file):
+        ### If so, try to open it. If it throws an error, print it and stop
+        try:
+            f = h5py.File(data_file,'a')
+        except Exception as e:
+            print(str(e))
+            return
 
-        # Otherwise the file did not exist or was not specified and we just had to create it and
-        # populate it
-        # If the file did not exist, then we will need to run the orifice
-        # cases. We then use Idvec and mdotvec as the Id and mdot in the HDF5
-        # file
+        ### Are there orifice results already?
+        try:
+            # If there are, grab them and convert to Numpy array
+            orifice_results = f.get(results_path + '/orifice')
+            orifice_results = np.array(orifice_results)
+        except:
+            # If not, then we will have to run the orifice simulation
+            run_orifice = True
+    else:
+        # The file did not exist: we just have to create it and populate it
+        # We will then need to run the orifice cases and use Idvec and mdotvec 
+        # as the Id and mdot in the HDF5 file
         create_h5file(Idvec, mdotvec, dc_db, do_db, Lo_db, Lupstream,
-                Lemitter, eiz_db, TgK,
-        species, cathode_name)
+                Lemitter, eiz_db, TgK, species, data_file)
         run_orifice = True
-
-        if cathode_name is None:
-            f = h5py.File("tmp.h5",'a')
-        else:
-            f = h5py.File(cathode_name + ".h5",'a')
 
     if run_orifice:
         ### Pre-compute the orifice density for a number of insert densities, 
@@ -187,35 +191,38 @@ def solve(Idvec,mdotvec,
 
         ### Compute cases in parallel
         # Make sure we don't spawn more processes than we need
-        procnum = None
-        if len(ngo_case) < os.cpu_count():
-            procnum = len(ngo_case) 
+        procnum = find_number_processes(ngo_case) 
 
-        with mp.Pool(processes=procnum) as pool:
-            res = pool.starmap(orifice_density_wrapper,ngo_case)
+        #with mp.Pool(processes=procnum) as pool:
+        #    res = pool.starmap(orifice_density_wrapper,ngo_case)
+        orifice_results = orifice_density_wrapper(*ngo_case[0]) 
+        orifice_results = np.array(orifice_results)
 
         print("...done")
 
         ### Save the results in the HDF5 file
-        results_path = species + '/simulations' + '/results' + '/' + str(TgK)
-        f.create_dataset(results_path + "/orifice", data=np.array(res))
-
-    else:
-        results_path = species + '/simulations' + '/results' + '/' + str(TgK)
-        res = f[results_path + "/orifice"] 
+        f.create_dataset(results_path + "/orifice", 
+                data=np.copy(orifice_results))
     
-    if phi_s is not None:
+    ###########################################################################
+    ### Insert results ########################################################
+    ###########################################################################
+    ### We can just solve for the orifice solutions if we do not specify the
+    ### set of sheath potentials to use
+    ### If we do specify the sheath potentials, then we create an interpolator
+    ### based on orifice data, then solve for the insert solution.
+    if (phi_s is not None):
         ### Create an interpolator to find orifice density from mass flow rate,
         ### discharge current, and insert density. 
         # Inputs: x,y,z are mass flow rate, discharge current, insert density
         # Output: orifice density
         # x,y,z,V: mdot,Id,ng_i,ng_o
         #res = np.array(res)
-        x = np.unique(res[:,0])
+        x = np.unique(orifice_results[:,0])
         x = np.sort(x)
-        y = np.unique(res[:,1])
+        y = np.unique(orifice_results[:,1])
         y = np.sort(y)
-        z = np.unique(res[:,2])
+        z = np.unique(orifice_results[:,2])
         z = np.sort(z)
         
         print("Creating interpolating function...")
@@ -233,8 +240,7 @@ def solve(Idvec,mdotvec,
         
         ### Run all cases 
         # Create a list of all cases to run
-        list_case = []
-        list_case = itertools.product(mdot_SI,
+        it = itertools.product(mdot_SI,
                     Idvec,
                     [M],
                     [dc], [do], [Lo],
@@ -245,14 +251,21 @@ def solve(Idvec,mdotvec,
                     [TgK],
                     phi_s)
 
+        insert_case = list(it) 
+
+        # Find number of processes
+        procnum = find_number_processes(insert_case) 
         # Run the cases
         print("Running cases...")
-        with mp.Pool() as pool:
-            res = pool.starmap(insert_density_wrapper,list_case)
+        #with mp.Pool(processes=procnum) as pool:
+        #    res = pool.starmap(insert_density_wrapper,insert_case)
+        res = insert_density_wrapper(*insert_case[0])
         print("...done")
 
         ### Save into the HDF5 file
-        #return res
+        ### TODO: TEST THIS BC. I'M PRETTY SURE THIS IS A DICTIONARY BEING RETURNED
+        results_path = species + '/simulations' + '/results' + '/' + str(TgK)
+        f.create_dataset(results_path + "/insert", data=np.array(res))
 
     else:
         return
