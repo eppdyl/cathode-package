@@ -70,11 +70,10 @@ def orifice_density_wrapper(mdot,
         return np.array([mdot,Id,ng_i,ng_o])    
 
     ### Cross-sections
-    # TODO: Use do instead of ds here
-    rr_iz = lambda ng,ds: chold.rr('iz',Te_orifice(ng,ds,TgK,species))
-    rr_en = lambda ng,ds: chold.rr('en',Te_orifice(ng,ds,TgK,species))
-    rr_ex = lambda ng,ds: chold.rr('ex',Te_orifice(ng,ds,TgK,species))
-    rr_ei = lambda ng,ds: chold.rr('ei',Te_orifice(ng,ds,TgK,species))
+    rr_iz = lambda ng: chold.rr('iz',Te_orifice(ng,do,TgK,species))
+    rr_en = lambda ng: chold.rr('en',Te_orifice(ng,do,TgK,species))
+    rr_ex = lambda ng: chold.rr('ex',Te_orifice(ng,do,TgK,species))
+    rr_ei = lambda ng: chold.rr('ei',Te_orifice(ng,do,TgK,species))
     eex = lambda ng: chold.ex_avg_energy(Te_orifice(ng,do,TgK,species)) # 
     
     ### ORIFICE EQUATIONS
@@ -91,11 +90,11 @@ def orifice_density_wrapper(mdot,
     alpha_o = lambda ng: 1 + 1/(2*delta(ng)) * (1-sqrt_alpha(ng))
     
     # First term in alpha^2
-    alpha2_o1 = lambda ng: cc.e * ng**2 * rr_iz(ng,do) * np.pi * Lo * ro**2 * eiz
-    alpha2_o2 = lambda ng: cc.me * Lo / (np.pi*ro**2*cc.e**2) * rr_ei(ng,do) * Id**2
+    alpha2_o1 = lambda ng: cc.e * ng**2 * rr_iz(ng) * np.pi * Lo * ro**2 * eiz
+    alpha2_o2 = lambda ng: cc.me * Lo / (np.pi*ro**2*cc.e**2) * rr_ei(ng) * Id**2
     alpha2_o3 = lambda ng: 5/2 * Id * (Te_orifice(ng,do,TgK,species) - Te_i)
-    alpha2_o4 = lambda ng: cc.me * Lo / (np.pi*ro**2*cc.e**2) * rr_en(ng,do) * Id**2
-    alpha2_o5 = lambda ng: cc.e * ng**2 * rr_ex(ng,do) * np.pi * Lo * ro**2 * eex(ng)
+    alpha2_o4 = lambda ng: cc.me * Lo / (np.pi*ro**2*cc.e**2) * rr_en(ng) * Id**2
+    alpha2_o5 = lambda ng: cc.e * ng**2 * rr_ex(ng) * np.pi * Lo * ro**2 * eex(ng)
     
     alpha2_o = lambda al,ng: al(ng)**2 * (alpha2_o1(ng) + alpha2_o2(ng) - alpha2_o3(ng) - alpha2_o4(ng) + alpha2_o5(ng))
     
@@ -115,8 +114,10 @@ def orifice_density_wrapper(mdot,
     
     
     ### Solve the orifice equation for ng
+    ### TODO CHECK BOUNDING PROCESS
     # Upper bound for ng_orifice: cannot exceed insert density, and have to 
     # ensure that alpha is always positive
+    # We check the latter condition later
 #    ngo_max = mdot / (np.pi * ro**2 * M) * 1/np.sqrt(gam * Rg * TgK)
 #    lngo_max = np.min([np.log10(ngo_max),log_ng_i])
     lngo_max = log_ng_i
@@ -149,6 +150,7 @@ def orifice_density_wrapper(mdot,
 
     # If the bounding process worked, let's try to find a solution
 #    print(orifice_equation(17),orifice_equation(log_ng_i))
+    ### Bisect the equation; if we can't, then there are no solutions
     try:
         l_ngo = next(bisect_next(lambda log_ng: orifice_equation(log_ng),
                                              lngo_min,

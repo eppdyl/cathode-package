@@ -29,6 +29,7 @@ from correlation import Te_insert, TeK_orifice, Lem
 import cathode.constants as cc
 from cathode.math.bisect_next import bisect_next
 from cathode.models.flow import knudsen_number, santeler_theta
+from cathode.models.taunay_et_al_core.utils import check_answer 
 
 def ng_target(lng_i,params):
     '''
@@ -51,20 +52,19 @@ def ng_core(ng_i,params):
     This function is separated from ng_target because it will be called
     once more once we have a solution from the bisection method.
     '''
-    # TODO: Use kwargs for params instead of a dictionary!!!!
     ### Extract parameters
     dc = params['dc'] # m
     do = params['do'] # m
     Rg = params['Rg'] # S.I.
     gam = params['gamma']
-    TgK = params['TgK']
+    TgK = params['TgK'] # K
     mdot = params['mdot'] # kg/s
     rr_iz = params['rr_iz'] # m3/s for the sheath-edge factor
-    Id = params['Id']
+    Id = params['Id'] # A
     M = params['M'] # kg
     phi_s = params['phi_s'] # V
-    ngo_fn = params['ng_o']
-    species = params['species']
+    ngo_fn = params['ng_o'] # 1/m3
+    species = params['species'] 
     
     PI2 = do/dc
     
@@ -401,20 +401,4 @@ def insert_density_wrapper(mdot,
     
     return ret_array
 
-def check_answer(ng_i,ret_all):
-        ng_o = ret_all['ng_o']
-        alpha_o = ret_all['alpha_o']
-        Te_o = ret_all['Te_o']
-        
-        alpha_i = ret_all['alpha_i']
-        Te_i = ret_all['Te_i']
 
-        b_ai = alpha_i < 0 or alpha_i > 1
-        b_ao = alpha_o < 0 or alpha_o > 1
-        b_ng = ng_i < ng_o
-        b_Te = Te_i > Te_o    
-        
-        if(b_ai or b_ao or b_ng or b_Te):
-            return False
-        else:
-            return True
