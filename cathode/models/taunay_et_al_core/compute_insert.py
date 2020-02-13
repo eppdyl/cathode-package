@@ -350,6 +350,7 @@ def insert_density_wrapper(mdot,
                 
         # Case 3: multiple solutions
         else:
+            # TODO: check that the lowest solution is the best
             lng_i_array = np.array(lng_i_list)
             lng_i_array = np.sort(lng_i_array,axis=0)
                     
