@@ -79,6 +79,7 @@ def ng_core(ng_i,params):
     ### Insert quantities
     # Get insert electron temperature and ionization fraction
     Te_i = Te_insert(ng_i,dc,species)
+
     # Grab the MINIMUM alpha
     try:
         ai_p = alpha_i_p(ng_i,phi_s)
@@ -107,7 +108,6 @@ def ng_core(ng_i,params):
     # Get the orifice neutral density from the input parameters
     ng_o_in = np.array([mdot,Id,ng_i])
     ng_o = ngo_fn(ng_o_in)    
-#    print(mdot,Id,ng_i,ng_o)
 
     # Get the corresponding orifice ionization fraction
     alpha_o = params['alpha_o']
@@ -123,12 +123,13 @@ def ng_core(ng_i,params):
     ### Total pressure
     ## Gasdynamic pressure
     Pgd = mdot * a_o / (np.pi*ro**2) # Gas dynamic
-#    Pgd *= 1/2
     
     ## Magnetic pressure
     P_mag = cc.mu0 * Id**2 / (np.pi**2*do**2) * (1/4 + np.log(dc/do))
 
     ## Static pressures on the wall
+    # Quantities "w/o" correction are the static species pressure used in the
+    # perfect gas law
     # Electron pressure w/o correction
     P_e = alpha_i / (1-alpha_i) * cc.e * Te_i * ng_i
 
@@ -164,9 +165,6 @@ def ng_core(ng_i,params):
     
     Pexit_static = Pexit * (2/(gam+1)) ** (gam/(gam-1))
 
-
-#    print(mdot_sccm,Qput,Teq,Ca,Cv,ng_o,lKn,th,Pexit)
-
     # Total pressure
     P_g = TgK * ng_i * cc.Boltzmann # Target neutral static pressure
     P_ie = (P_e + P_i) # Target plasma static pressure
@@ -176,33 +174,37 @@ def ng_core(ng_i,params):
     ### Target
     ret = 1-(P_tot/(P_g + P_ie))
     
-#    print(ng_i,Te_i,alpha_i,ng_o,Te_o,al_o,ret,P_tot,P_g,P_ie)
-#    print(ng_i,ret,P_tot,P_g,Pgd,P_mag,Pexit)
-    
     ret_obj = {}
+    # Plasma quantities: gas and electron density, temperature, ionization 
+    # fraction
     ret_obj['ng_i'] = ng_i
+    ret_obj['ne_i'] = alpha_i / (1-alpha_i) * ng_i
     ret_obj['Te_i'] = Te_i
     ret_obj['alpha_i'] = alpha_i
+
     ret_obj['ng_o'] = ng_o
+    ret_obj['ne_o'] = al_o / (1-al_o) * ng_o
     ret_obj['Te_o'] = Te_o*cc.Kelvin2eV
     ret_obj['alpha_o'] = al_o
+
+    ret_obj['sheath_edge_correction'] = nes_fac
      
-    ret_obj['Pgd'] = Pgd
-    ret_obj['Pmag'] = P_mag
-    ret_obj['Por'] = P_or
+    # Total pressure components 
+    ret_obj['Pgd'] = Pgd # Gasdynamic
+    ret_obj['Pmag'] = P_mag # Magnetic
+    ret_obj['Por'] = P_or # Orifice plate
+    ret_obj['Pexit'] = Pexit_static # Exit static
     ret_obj['Ptot'] = P_tot
+    
+    # Perfect gas law
     ret_obj['Pe'] = P_e
     ret_obj['Pi'] = P_i
     ret_obj['Pg'] = P_g
-    ret_obj['Pexit'] = Pexit_static
     
-    ret_obj['sheath_edge_correction'] = nes_fac
     
-    ret_obj['ratio'] = P_tot
-    ret_obj['phi_s'] = phi_s
-    ret_obj['goal'] = ret
-    
-#    print(alpha_i,ng_i,Te_i,al_o,ng_o,Te_o,ret)
+    ret_obj['ratio'] = P_tot / P_mag # Total pressure to magnetic pressure 
+    ret_obj['phi_s'] = phi_s # Value of sheath voltage
+    ret_obj['goal'] = ret # Value of goal function
     
     return ret_obj
 
@@ -335,6 +337,8 @@ def insert_density_wrapper(mdot,
                                      atol = 1e-6))
         # TODO: zip the tuple and ** to unpack the output of the list into
         # two different vectors
+
+        # Sanity check: do we have multiple solutions (this should not happen)
         # Case 1: no solution
         if(len(lng_i_list) == 0):
             ng_i = np.nan
@@ -362,7 +366,6 @@ def insert_density_wrapper(mdot,
                 # Test out of bounds for ionization fraction and if the orifice
                 # density is greater than the insert one
                 b_answer = check_answer(10**l_ngi,ret_all)    
-                
 
                 if(b_answer):
                     # If it is a satisfactory answer, break out of loop
@@ -375,10 +378,9 @@ def insert_density_wrapper(mdot,
 
         
         ret_obj = {}
+        #ret_obj['output'] = np.array([ng_i])
         ret_obj['input'] = np.array([mdot,Id,M,dc,do,Lo,eiz])
-        ret_obj['output'] = np.array([ng_i])
-        ret_obj['ratio'] = ng_i * TgK * cc.Boltzmann
-        ret_obj['opti_out'] = lng_i_list
+        ret_obj['bisection_out'] = lng_i_list # Make sure we have a single solution
         try:
             ret_obj['complete'] = ng_core(ng_i,params)
         except:
@@ -386,7 +388,7 @@ def insert_density_wrapper(mdot,
  
         if verbose:
             print("======")    
-            print("mdot(sccm),Id(A),M(amu),dc(mm),do(mm),Lo(mm),eiz(eV),phi_S (V),P_model")
+            print("mdot(sccm),Id(A),M(amu),dc(mm),do(mm),Lo(mm),eiz(eV),phi_S (V),P_model (Torr)")
             print(mdot * cc.e / M / cc.sccm2eqA,
                   Id,
                   M/cc.atomic_mass,
@@ -395,13 +397,11 @@ def insert_density_wrapper(mdot,
                   Lo/1e-3,
                   eiz,
                   phis,
-                  ret_obj['ratio'])
+                  ret_obj['complete']['Ptot']/cc.Torr)
                   
-            print("opti_out")
-            print(lng_i_list)  
+            print("bisection_out")
+            print(ret_obj['bisection_out'])  
         
         ret_array.append(ret_obj)
     
     return ret_array
-
-
