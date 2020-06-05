@@ -216,7 +216,8 @@ def insert_density_wrapper(mdot,
                               species,
                               chold,
                               TgK,
-                              phi_s):
+                              phi_s,
+                              verbose):
     '''
     Outer-most wrapper for the insert density calculation. 
     This function is in charge of setting-up the insert equations and 
@@ -383,20 +384,21 @@ def insert_density_wrapper(mdot,
         except:
             ret_obj['complete'] = []
  
-        print("======")    
-        print("mdot(sccm),Id(A),M(amu),dc(mm),do(mm),Lo(mm),eiz(eV),phi_S (V),P_model")
-        print(mdot * cc.e / M / cc.sccm2eqA,
-              Id,
-              M/cc.atomic_mass,
-              dc/1e-3,
-              do/1e-3,
-              Lo/1e-3,
-              eiz,
-              phis,
-              ret_obj['ratio'])
-              
-        print("opti_out")
-        print(lng_i_list)  
+        if verbose:
+            print("======")    
+            print("mdot(sccm),Id(A),M(amu),dc(mm),do(mm),Lo(mm),eiz(eV),phi_S (V),P_model")
+            print(mdot * cc.e / M / cc.sccm2eqA,
+                  Id,
+                  M/cc.atomic_mass,
+                  dc/1e-3,
+                  do/1e-3,
+                  Lo/1e-3,
+                  eiz,
+                  phis,
+                  ret_obj['ratio'])
+                  
+            print("opti_out")
+            print(lng_i_list)  
         
         ret_array.append(ret_obj)
     

@@ -37,7 +37,8 @@ def orifice_density_wrapper(mdot,
                             log_ng_i,
                             species,
                             chold,
-                            TgK):
+                            TgK,
+                            verbose):
     ''' Calculates the neutral density in the orifice based on a given gas, 
     mass flow rate, discharge current, geometry, and insert density.
     The insert density is necessary because of the insert electron temperature
@@ -148,5 +149,6 @@ def orifice_density_wrapper(mdot,
     if ng_o < 0:
         ng_o = np.nan
     
-    print(l_ngo,np.array([mdot * cc.e / M  / cc.sccm2eqA,Id,ng_i,ng_o]),l_ao)
+    if verbose:
+        print(l_ngo,np.array([mdot * cc.e / M  / cc.sccm2eqA,Id,ng_i,ng_o]),l_ao)
     return np.array([mdot,Id,ng_i,ng_o])
