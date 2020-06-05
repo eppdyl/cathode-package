@@ -61,6 +61,11 @@ class SingleCoordInterpolator(RegularGridInterpolator):
 
         if values.shape[0] == 1 and values.shape[1] == 1:
             values = values.reshape((values.shape[2],))
+        elif values.shape[0] == 1 and values.shape[1] > 1:
+            values = values.reshape((values.shape[1],values.shape[2]))
+        elif values.shape[0] > 1 and values.shape[1] == 1:
+            values = values.reshape((values.shape[0],values.shape[2]))
+
 
         ### Use the parent constructor with the smaller tuple
         super().__init__(extract_points,values,method,bounds_error,fill_value)

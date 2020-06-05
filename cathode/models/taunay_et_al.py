@@ -27,20 +27,20 @@
 # Contact info: https:/github.com/pytaunay
 #
 import numpy as np
-import pickle
 import multiprocessing as mp
 import itertools
 import h5py
 import os
 
 
-from scipy.interpolate import RegularGridInterpolator
+from scipy.interpolate import RegularGridInterpolator 
 
 import cathode.constants as cc
 from cathode.models.taunay_et_al_core.collision_holder import collision_holder
 from cathode.models.taunay_et_al_core.compute_orifice import orifice_density_wrapper
 from cathode.models.taunay_et_al_core.compute_insert import insert_density_wrapper
 from cathode.models.taunay_et_al_core.utils import find_number_processes
+from cathode.models.taunay_et_al_core.SingleCoordInterpolator import SingleCoordInterpolator 
 
 def create_h5file(Idvec, mdotvec, dc_db, do_db, Lo_db, Lupstream, Lemitter, eiz_db, TgK,
         species, data_file):
@@ -83,7 +83,8 @@ def solve(Idvec,mdotvec,
                                    TgK,
                                    data_file,
                                    phi_s = None,
-                                   force_orifice_calc = False
+                                   force_orifice_calc = False,
+                                   verbose = True 
                                    ):          
     '''
      Compute the case from an Id and mdot vector
@@ -97,12 +98,16 @@ def solve(Idvec,mdotvec,
         - dc_db: cathode insert diameter (mm)
         - do_db: cathode orifice diameter (mm)
         - Lo_db: cathode orifice length (mm)
+        - Lupstream: upstream distance to the pressure measurement ()
+        - Lemitter: length of the emitter ()
         - eiz_db: ionization energy of the gas (eV)
         - TgK: neutral gas temperature assumed (K)
         - data_file: location of HDF5 file that contains results.
-        - phi_s: vector of sheath potentials to test (V). Optional.
+        - phi_s: vector of sheath potentials to test (V). Defaults to None. 
+          Optional.
         - force_orifice_calc: a boolean to force computations of orifice
-          results. Optional.
+          results. Defaults to False. Optional.
+        - verbose: Controls verbosity. Defaults to True. Optional.
     If phi_s is NOT specified, then the code will run only the orifice cases.
     If phi_s is specified, then the code will try to read data_file to obtain
     orifice results. If they do not exist, they will be created, saved, and
@@ -110,11 +115,13 @@ def solve(Idvec,mdotvec,
     If force_orifice_calc is used, the orifice cases will be computed
     regardless of the presence of existing results. If orifice results already
     exist, they will be overwritten. Be careful!
+
+    If verbose is "True" then all printouts will be displayed.
     '''    
     ### Check that we have a single gas, single geometry, single temperature
     try:
         list_test = list([M_db, dc_db, do_db, Lo_db, Lupstream, Lemitter, 
-            eiz_db, TgK]) 
+            eiz_db, TgK, verbose]) 
 
         for x in list_test:
             if type(x) is list or type(x) is np.ndarray:
@@ -156,20 +163,26 @@ def solve(Idvec,mdotvec,
     if os.path.exists(data_file):
         ### If so, try to open it. If it throws an error, print it and stop
         try:
+            print("Attempting to open ", data_file, " ...")
             f = h5py.File(data_file,'a')
         except Exception as e:
             print(str(e))
             return
 
+        print("...success!")
+
         ### Are there orifice results already?
         orifice_results = f.get(results_path + '/orifice')
         # If there are, grab them and convert to Numpy array
         if orifice_results is not None:
+            print("Orifice results already exist in ", data_file)
+            print("Please make sure they can be used for the insert cases!")
             orifice_results = np.array(orifice_results)
         else:
             # If not, then we will have to run the orifice simulation
             run_orifice = True
     else:
+        print(data_file," does not exist! Creating file.")
         # The file did not exist: we just have to create it and populate it
         # We will then need to run the orifice cases and use Idvec and mdotvec 
         # as the Id and mdot in the HDF5 file
@@ -192,7 +205,8 @@ def solve(Idvec,mdotvec,
                 ngi_vec,
                 [species],
                 [chold],
-                [TgK])
+                [TgK],
+                [verbose])
         ngo_case = list(it)
         orifice_results = np.zeros((len(ngo_case),4))
 
@@ -230,6 +244,9 @@ def solve(Idvec,mdotvec,
         mdot_o_min = np.min(mdot_o)
         mdot_o_max = np.max(mdot_o)
 
+        ### Note that these are *strict* inequalities
+        ### Turns out that the RegularGridInterpolator does not work well with
+        ### values that are exactly on the boundary
         b_Id = (np.min(Idvec) < Id_o_min) or (np.max(Idvec) > Id_o_max)
         b_mdot = (np.min(mdotvec) < mdot_o_min) or (np.max(mdotvec) >
                 mdot_o_max)
@@ -237,8 +254,10 @@ def solve(Idvec,mdotvec,
             str_err = "ERROR "
             str_err += "Cannot run insert cases that are out of the existing "
             str_err += "bounds of the orifice cases: "
-            str_err += "(" + str(Id_o_min) + " < Id < " + str(Id_o_max) + "and "
-            str_err += str(mdot_o_min) + " < mdot < " + str(mdot_o_max) + ")"
+            str_err += "(" + str(Id_o_min) + " < Id < " + str(Id_o_max) 
+            str_err += " and "
+            str_err += str(mdot_o_min /cc.sccm2eqA) + " < mdot < " 
+            str_err += str(mdot_o_max/cc.sccm2eqA) + ")"
             raise RuntimeError(str_err)
 
         ### Create an interpolator to find orifice density from mass flow rate,
@@ -252,18 +271,35 @@ def solve(Idvec,mdotvec,
         y = np.sort(y)
         z = np.unique(orifice_results[:,2])
         z = np.sort(z)
-        
+
+        print(x,y,z)
+
+        ### From scipy documentation on RegularGridInterpolator:
+        ### "If any of points have a dimension of size 1, linear interpolation 
+        ### will return an array of nan values. Nearest-neighbor interpolation 
+        ### will work as usual in this case."
+
         print("Creating interpolating function...")
         V = np.zeros((len(x),len(y),len(z)))
+        Vlin = np.zeros(len(x)*len(y)*len(z))
         for ii, mdot in enumerate(x):
             for jj, Id in enumerate(y):
                 for kk, ngi in enumerate(z):
-                    #print(ii,jj,kk)
                     idx = kk + jj * len(z) + ii * len(z)*len(y)
-                    V[ii,jj,kk] = res[idx][-1]  
+                    V[ii,jj,kk] = orifice_results[idx][-1]  
+                    Vlin[idx] = orifice_results[idx][-1]
                     
-        ngo_fn = RegularGridInterpolator((x,y,z), V, 
-                                         bounds_error = False)
+        ### We have different cases we have to deal with because of the quirks
+        ### of RegularGridInterpolator
+        ### The only possible cases are that mass flow rate and discharge 
+        ### current have single entry. The insert density values *always* have
+        ### more than 1 element by construction
+        if len(x) == 1 or len(y) == 1:
+            ngo_fn = SingleCoordInterpolator((x,y,z), V, 
+                                             bounds_error = False)
+        else:
+            ngo_fn = RegularGridInterpolator((x,y,z), V, 
+                                             bounds_error = False)
         print("...done")
         
         ### Run all cases 
@@ -277,7 +313,8 @@ def solve(Idvec,mdotvec,
                     [species],
                     [chold],
                     [TgK],
-                    phi_s)
+                    phi_s,
+                    [verbose])
 
         insert_case = list(it) 
 
@@ -291,7 +328,7 @@ def solve(Idvec,mdotvec,
         print("...done")
 
         ### Save into the HDF5 file
-        ### TODO: TEST THIS BC. I'M PRETTY SURE THIS IS A DICTIONARY BEING RETURNED
+        ### TODO: TEST THIS BECAUSE I'M PRETTY SURE THIS IS A DICTIONARY BEING RETURNED
         results_path = species + '/simulations' + '/results' + '/' + str(TgK)
         f.create_dataset(results_path + "/insert", data=np.array(res))
 
