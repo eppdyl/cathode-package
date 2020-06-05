@@ -31,6 +31,7 @@ import multiprocessing as mp
 import itertools
 import h5py
 import os
+import pickle
 
 
 from scipy.interpolate import RegularGridInterpolator 
@@ -39,7 +40,7 @@ import cathode.constants as cc
 from cathode.models.taunay_et_al_core.collision_holder import collision_holder
 from cathode.models.taunay_et_al_core.compute_orifice import orifice_density_wrapper
 from cathode.models.taunay_et_al_core.compute_insert import insert_density_wrapper
-from cathode.models.taunay_et_al_core.utils import find_number_processes
+from cathode.models.taunay_et_al_core.utils import find_number_processes,unpack_results
 from cathode.models.taunay_et_al_core.SingleCoordInterpolator import SingleCoordInterpolator 
 
 def create_h5file(Idvec, mdotvec, dc_db, do_db, Lo_db, Lupstream, Lemitter, eiz_db, TgK,
@@ -295,7 +296,7 @@ def solve(Idvec,mdotvec,
         ### current have single entry. The insert density values *always* have
         ### more than 1 element by construction
         if len(x) == 1 or len(y) == 1:
-            print("WARNING: The single coordinate interpolator has not been"
+            print("WARNING: The single coordinate interpolator has not been "
                     "thoroughly tested yet. Use at own risk.")
             ngo_fn = SingleCoordInterpolator((x,y,z), V, 
                                              bounds_error = False)
@@ -306,19 +307,23 @@ def solve(Idvec,mdotvec,
         
         ### Run all cases 
         # Create a list of all cases to run
-        it = itertools.product(mdot_SI,
-                    Idvec,
-                    [M],
-                    [dc], [do], [Lo],
-                    [eiz_db],
-                    [ngo_fn],
-                    [species],
-                    [chold],
-                    [TgK],
+        # Note: can't use itertools.product here bc. otherwise the vector of
+        # sheath voltages, phi_s, gets expanded and gums up the interface in
+        # insert_density_wrapper.
+        insert_case = []
+        for mdot in mdot_SI:
+            for Id in Idvec:
+                insert_case.append((mdot,
+                    Id,
+                    M,
+                    dc,do,Lo,
+                    eiz_db,
+                    ngo_fn,
+                    species,
+                    chold,
+                    TgK,
                     phi_s,
-                    [verbose])
-
-        insert_case = list(it) 
+                    verbose))
 
         # Find number of processes
         procnum = find_number_processes(insert_case) 
@@ -326,13 +331,24 @@ def solve(Idvec,mdotvec,
         print("Running cases...")
         #with mp.Pool(processes=procnum) as pool:
         #    res = pool.starmap(insert_density_wrapper,insert_case)
-        res = insert_density_wrapper(*insert_case[0])
+        #res = insert_density_wrapper(*insert_case[0])
+        res = pickle.load(open('test.pkl','rb'))
         print("...done")
+
+        ### Convert to a Pandas dataframe
+        # TODO Pass the work function upstream. Now everything is BaO-W
+        emitterMaterial = 'BaO-W'
+        df = unpack_results(res,Lupstream,Lemitter,species,chold,TgK,emitterMaterial,phi_s)
 
         ### Save into the HDF5 file
         ### TODO: TEST THIS BECAUSE I'M PRETTY SURE THIS IS A DICTIONARY BEING RETURNED
         results_path = species + '/simulations' + '/results' + '/' + str(TgK)
-        f.create_dataset(results_path + "/insert", data=np.array(res))
+        #print(res)
+        #f.create_dataset(results_path + "/insert", data=np.array(res))
+        #pickle.dump(res,open("test.pkl","wb"))
+
+        return df
+
 
     else:
         f.close()
