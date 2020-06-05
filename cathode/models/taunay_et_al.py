@@ -295,6 +295,8 @@ def solve(Idvec,mdotvec,
         ### current have single entry. The insert density values *always* have
         ### more than 1 element by construction
         if len(x) == 1 or len(y) == 1:
+            print("WARNING: The single coordinate interpolator has not been"
+                    "thoroughly tested yet. Use at own risk.")
             ngo_fn = SingleCoordInterpolator((x,y,z), V, 
                                              bounds_error = False)
         else:
