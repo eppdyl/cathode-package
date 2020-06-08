@@ -38,48 +38,49 @@ from cathode.models.flow import poiseuille_flow
 from scipy.optimize import root
 
 ### Columns of the pandas dataframe
-columns = [ # Start with inputs
-           'dischargeCurrent',  # A
-           'massFlowRate_SI',   # kg/s
-           'massFlowRate_eqA',  # eqA
-           'massFlowRate_sccm', # sccm
-           'species',           # string
-           'mass',              # kg
-           'ionizationEnergy',  # eV
-           'insertDiameter',    # m
-           'orificeDiameter',   # m
-           'orificeLength',     # m
-           'sheathVoltage',     # V
-           'neutralGasTemperature', # K
-           'upstreamPressureTap', # m
-           'emitterLength',     # m
-           'workFunctionMaterial', # string
+columns = np.dtype([ # Start with inputs
+           ('dischargeCurrent',float),  # A
+           ('massFlowRate_SI',float),   # kg/s
+           ('massFlowRate_eqA',float),  # eqA
+           ('massFlowRate_sccm',float), # sccm
+           ('species',str),           # string
+           ('mass',float),              # kg
+           ('ionizationEnergy',float),  # eV
+           ('insertDiameter',float),    # m
+           ('orificeDiameter',float),   # m
+           ('orificeLength',float),     # m
+           ('sheathVoltage',float),     # V
+           ('neutralGasTemperature',float), # K
+           ('upstreamPressureTap',float), # m
+           ('emitterLength',float),     # m
+           ('workFunctionMaterial',str), # string
             # Continue with outputs
-            'bisectionOutput', # List of (result,tolerance)
-            'electronPressure',     # Pa
-            'ionPressure',          # Pa
-            'neutralPressure',      # Pa
-            'exitStaticPressure',   # Pa
-            'gasdynamicPressure',   # Pa
-            'magneticPressure',     # Pa
-            'momentumFluxPressure', # Pa
-            'totalPressure',        # Pa
-            'totalPressure_Torr',   # Torr
-            'totalPressureCorr',    # Pa
-            'totalPressureCorr_Torr',    # Torr 
-            'insertElectronTemperature',    # eV
-            'orificeElectronTemperature',   # eV
-            'insertTemperature',            # degC 
-            'emissionLength',               # m 
-            'insertElectronDensity',        # 1/m3
-            'orificeElectronDensity',       # 1/m3
-            'insertNeutralDensity',         # 1/m3
-            'orificeNeutralDensity',        # 1/m3
-            'insertIonizationFraction',     # 1
-            'orificeIonizationFraction',    # 1
-            'totalToMagneticRatio',         # 1
-            'sheathEdgeFactor',             # 1
-            'goal']
+            ('bisectionOutput',np.ndarray), # List of (result,tolerance)
+            ('electronPressure',float),     # Pa
+            ('ionPressure',float),          # Pa
+            ('neutralPressure',float),      # Pa
+            ('exitStaticPressure',float),   # Pa
+            ('gasdynamicPressure',float),   # Pa
+            ('magneticPressure',float),     # Pa
+            ('momentumFluxPressure',float), # Pa
+            ('totalPressure',float),        # Pa
+            ('totalPressure_Torr',float),   # Torr
+            ('totalPressureCorr',float),    # Pa
+            ('totalPressureCorr_Torr',float),    # Torr 
+            ('insertElectronTemperature',float),    # eV
+            ('orificeElectronTemperature',float),   # eV
+            ('insertTemperature',float),            # degC 
+            ('emissionLength',float),               # m 
+            ('insertElectronDensity',float),        # 1/m3
+            ('orificeElectronDensity',float),       # 1/m3
+            ('insertNeutralDensity',float),         # 1/m3
+            ('orificeNeutralDensity',float),        # 1/m3
+            ('insertIonizationFraction',float),     # 1
+            ('orificeIonizationFraction',float),    # 1
+            ('totalToMagneticRatio',float),         # 1
+            ('sheathEdgeFactor',float),             # 1
+            ('goal',float)])
+
 
 def find_number_processes(list_case):
     """
@@ -154,7 +155,8 @@ def unpack_results(results,
         - emitterMaterial
         - phisvec
     """
-    df = pd.DataFrame(columns = columns)
+    df = np.empty(0,dtype=columns)
+    df = pd.DataFrame(df)
     RDConstant, phi_wf = emitter_material(emitterMaterial)
 
     # The results are in an N by 1 array of objects
@@ -285,7 +287,7 @@ def unpack_results(results,
                             al_o,
                             Pratio,
                             sheath_edge_factor,
-                            goal])
+                            goal],dtype=np.object)
 
             df.loc[len(df)] = np.copy(arr)
 
