@@ -53,7 +53,6 @@ columns = [ # Start with inputs
            'neutralGasTemperature', # K
            'upstreamPressureTap', # m
            'emitterLength',     # m
-           'workFunction',      # eV
            'workFunctionMaterial', # string
             # Continue with outputs
             'bisectionOutput', # List of (result,tolerance)
@@ -209,8 +208,8 @@ def unpack_results(results,
             Pi = lelem['complete']['Pi']
             # Pressures for momentum balance
             Pmag = lelem['complete']['Pmag']
-            Pgd = lelem['complete']['Pgd']
-            Pexit = lelem['complete']['Pexit'] # Static
+            Pgd = lelem['complete']['Pgd'][0]
+            Pexit = lelem['complete']['Pexit'][0] # Static
             Pmf = lelem['complete']['Por']
             # Total pressure
             Ptot = lelem['complete']['Ptot'][0]
@@ -240,7 +239,9 @@ def unpack_results(results,
             
             sol = root(lambda Tw: lhs(Tw)-rhs,3000)
             if np.isnan(Pout):
-                sol.x = np.nan
+                Tw = np.nan
+            else:
+                Tw = sol.x[0] - 273.15
             
             ### BUILD THE CORRESPONDING LINE IN PANDA FRAME
             arr = np.array([ # Start with inputs
@@ -258,7 +259,6 @@ def unpack_results(results,
                             TgK,
                             Lupstream,
                             Lemitter,
-                            phi_wf,
                             emitterMaterial,
                             # Continue with outputs
                             bisection_out,
@@ -266,7 +266,7 @@ def unpack_results(results,
                             Pi,
                             Pg,
                             Pexit,
-                            Pg,
+                            Pgd,
                             Pmag,
                             Pmf,
                             Ptot,
@@ -275,7 +275,7 @@ def unpack_results(results,
                             Pout_torr,
                             Te_i,
                             Te_o,
-                            sol.x,
+                            Tw,
                             Lem_i,
                             ne_i,
                             ne_o,
