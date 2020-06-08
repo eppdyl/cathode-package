@@ -31,6 +31,7 @@ import multiprocessing as mp
 import itertools
 import h5py
 import os
+import datetime
 import pickle
 
 
@@ -329,10 +330,8 @@ def solve(Idvec,mdotvec,
         procnum = find_number_processes(insert_case) 
         # Run the cases
         print("Running cases...")
-        #with mp.Pool(processes=procnum) as pool:
-        #    res = pool.starmap(insert_density_wrapper,insert_case)
-        #res = insert_density_wrapper(*insert_case[0])
-        res = pickle.load(open('test.pkl','rb'))
+        with mp.Pool(processes=procnum) as pool:
+            res = pool.starmap(insert_density_wrapper,insert_case)
         print("...done")
 
         ### Convert to a Pandas dataframe
@@ -340,15 +339,28 @@ def solve(Idvec,mdotvec,
         emitterMaterial = 'BaO-W'
         df = unpack_results(res,Lupstream,Lemitter,species,chold,TgK,emitterMaterial,phi_s)
 
+        ### Create a timestamp 
+        # and remove milliseconds
+        ts = datetime.datetime.utcnow()
+        ts = ts.strftime('%Y%m%d%H%M%S')
+        results_name = 'r' + ts
+
         ### Save into the HDF5 file
-        ### TODO: TEST THIS BECAUSE I'M PRETTY SURE THIS IS A DICTIONARY BEING RETURNED
-        results_path = species + '/simulations' + '/results' + '/' + str(TgK)
-        #print(res)
-        #f.create_dataset(results_path + "/insert", data=np.array(res))
-        #pickle.dump(res,open("test.pkl","wb"))
+        insert_path = results_path + '/insert'
+        # Did we create the "insert" group already?
+        insert_results = f.get(insert_path)
+        if insert_results is None:
+            print("INFO No insert results exist.")
+            print("INFO Creating insert group in the HDF5 file.")
+            f.create_group(insert_path)
 
-        return df
+        # Ensure the file is closed before we use .to_hdf() from Pandas
+        f.close()
 
+        # Save using Pandas to_hdf(). It will create a new group under which 
+        # the data lives
+        insert_results_path = insert_path + '/' + results_name 
+        df.to_hdf(data_file,insert_results_path)
 
     else:
         f.close()
