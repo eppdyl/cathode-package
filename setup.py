@@ -20,5 +20,5 @@ setup(name='cathode',
       license='AGPLv3',
       package_data={'': extra_files},
       packages=find_packages(),
-      install_requires=['numpy', 'scipy'],
+      install_requires=['numpy', 'scipy','h5py'],
       zip_safe=False)
