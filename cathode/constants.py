@@ -297,7 +297,7 @@ class LJ:
     def viscosity(self,name):
         ### Hg viscosity
         folder = os.path.dirname(__file__)
-        folder = os.path.join(folder,'experimental','files')
+        folder = os.path.join(folder,'resources')
         fname = os.path.join(folder,'collision-integrals-lj.csv')
         data = np.genfromtxt(fname,delimiter=',',names=True)
 
