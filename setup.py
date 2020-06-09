@@ -11,7 +11,7 @@ def package_files(directory):
             paths.append(os.path.join('..', path, filename))
     return paths
 
-extra_files = package_files('cathode/experimental/files')
+extra_files = package_files('cathode/resources')
 
 setup(name='cathode',
       version='1.0',
