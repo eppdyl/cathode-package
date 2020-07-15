@@ -1,3 +1,36 @@
+###############################################################################
+#
+# "cathode" Python package
+# Version: 1.0
+# A package of various cathode models that have been published throughout the
+# years. Associated publications:
+# - Taunay, P.-Y. C. R., Wordingham, C. J., and Choueiri, E. Y., "A 0-D model 
+# for orificed hollow cathodes with application to the scaling of total 
+# pressure," AIAA Propulsion and Energy Forum, 2019, AIAA-2019-4246
+# - Wordingham, C. J., Taunay, P.-Y. C. R., and Choueiri, E. Y., "A critical
+# review of hollow cathode modeling: 0-D models," 53rd AIAA/ASME/SAE/ASEE Joint 
+# Propulsion Conference, 2017, AIAA-2017-4888 
+# 
+###############################################################################
+# Copyright (C) 2019-2020 Chris Wordingham, Pierre-Yves Taunay
+#  
+# This file is part of the Python "cathode" package.
+#
+# The Python "cathode" package is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public License (LGPL) as 
+# published by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The Python "cathode" package is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License (LGPL) for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License 
+# (LGPL) along with the Python "cathode" package.  
+# If not, see <https://www.gnu.org/licenses/>.
+###############################################################################
+
 import cathode.constants as cc
 import numpy as np
 
