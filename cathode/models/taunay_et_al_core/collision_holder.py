@@ -1,7 +1,7 @@
 ###############################################################################
 #
 # "cathode" Python package
-# Version: 1.0
+# Version: 1.0.0
 # A package of various cathode models that have been published throughout the
 # years. Associated publications:
 # - Taunay, P.-Y. C. R., Wordingham, C. J., and Choueiri, E. Y., "A 0-D model 

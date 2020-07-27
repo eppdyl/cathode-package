@@ -1,7 +1,7 @@
 ###############################################################################
 #
 # "cathode" Python package
-# Version: 1.0
+# Version: 1.0.0
 # A package of various cathode models that have been published throughout the
 # years. Associated publications:
 # - Taunay, P.-Y. C. R., Wordingham, C. J., and Choueiri, E. Y., "A 0-D model 
@@ -46,9 +46,10 @@ def package_files(directory):
 extra_files = package_files('cathode/resources')
 
 setup(name='cathode',
-      version='1.0',
+      version='1.0.0',
       description='Hollow cathode modeling package',
-      author='EPPDyL',
+      author='Chris Wordingham, Pierre-Yves Taunay',
+      author_email='cjw4@alumni.princeton.edu, ptaunay@princeton.edu',
       license='LGPLv3',
       package_data={'': extra_files},
       packages=find_packages(),
