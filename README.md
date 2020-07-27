@@ -18,13 +18,14 @@ We also have added necessary ``helper'' functions to compute flow quantities
 such as the Reynolds or Knudsen number and interfaces for collision cross
 sections and reaction rates. 
 
-### How to use
+### Install 
 Clone the repository and install the library:
 ```
 sudo python setup.py build install
 ```
 
-Then, in the Python code:
+### How to use
+In the Python code:
 ```python
 import cathode
 ```
@@ -34,6 +35,32 @@ The package requires Numpy, Scipy, and h5py.
 
 ### License
 This work is licensed under the GNU Lesser General Public License (LGPL) v3.
+
+### Citations
+If you use any of the re-implemented 0-D models that are dated prior to 2017, 
+please cite our 2017 review:
+```
+@inproceedings{Wordingham2017,
+    author = {Wordingham, Christopher J. and Taunay, Pierre-Yves C. R. and Choueiri, Edgar Y.},
+    booktitle= {53rd AIAA/ASME/SAE/ASEE Joint Propulsion Conference},
+    doi= {10.2514/6.2017-4888},
+    note= {AIAA-2017-4888},
+    title= {A Critical Review of Orificed Hollow Cathode Modeling: 0-D Models},
+    year= {2017}
+}
+```
+
+If you use the 2019 0-D model, please cite the following paper:
+```
+@inproceedings{Taunay2019,
+    author = {Taunay, Pierre-Yves C. R. and Wordingham, Christopher J. and Choueiri, Edgar Y.},
+    booktitle= {55th AIAA/ASME/SAE/ASEE Joint Propulsion Conference},
+    doi= {10.2514/6.2019-4246},
+    note= {AIAA-2019-4246},
+    title= {A 0-D model for orificed hollow cathodes with application to the scaling of total pressure},
+    year= {2019}
+}
+```
 
 ### Contact
 You can contact either Pierre-Yves Taunay (ptaunay@princeton.edu) or Chris
