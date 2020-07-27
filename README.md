@@ -18,6 +18,14 @@ We also have added necessary ``helper'' functions to compute flow quantities
 such as the Reynolds or Knudsen number and interfaces for collision cross
 sections and reaction rates. 
 
+Based on the results of the review, we have implemented our own 0-D model that
+we presented at the 2019 AIAA Propulsion and Energy Forum:
+```
+Taunay, P.-Y. C. R., Wordingham, C. J., and Choueiri, E. Y., "A 0-D model for 
+orificed hollow cathodes with application to the scaling of total pressure,"
+AIAA Propulsion and Energy Forum, 2019, AIAA-2019-4246.
+```
+
 ### Install 
 Clone the repository and install the library:
 ```
