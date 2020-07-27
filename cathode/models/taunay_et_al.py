@@ -12,7 +12,7 @@
 # Propulsion Conference, 2017, AIAA-2017-4888 
 # 
 ###############################################################################
-# Copyright (C) 2017-2020 Chris Wordingham, Pierre-Yves Taunay
+# Copyright (C) 2019-2020 Pierre-Yves Taunay, Chris Wordingham 
 #  
 # This file is part of the Python "cathode" package.
 #
