@@ -1,11 +1,11 @@
 # Cathode package
 ### Description
-The ``cathode'' Python package contains various 0-D cathode models that have
+The "cathode" Python package contains various 0-D cathode models that have
 been published throughout the years, starting with D. Siegfried and P. J. 
 Wilbur in the late 1970s. 
 
 We have re-implemented the models for a comprehensive review that was published
-in the Joint Propulsion Conference proceedings:
+in the 2017 Joint Propulsion Conference proceedings:
 ```
 Wordingham, C. J., Taunay, P.-Y. C. R., and Choueiri, E. Y., "A critical
 review of hollow cathode modeling: 0-D models," 53rd AIAA/ASME/SAE/ASEE Joint 
@@ -14,9 +14,9 @@ Propulsion Conference, 2017, AIAA-2017-4888.
 The re-implementation of each model is done based on the model description from 
 the original publication.
 
-We also have added necessary ``helper'' functions to compute flow quantities
-such as the Reynolds or Knudsen number and interfaces for collision cross
-sections and reaction rates. 
+We also have implemented our own "helper" and "physics" functions that
+were compiled for the review. These functions are necessary to compute collision cross
+sections, reaction rates, and other flow quantities (e.g. Reynolds or Knudsen numbers).
 
 Based on the results of the review, we have implemented our own 0-D model that
 we presented at the 2019 AIAA Propulsion and Energy Forum:
@@ -67,6 +67,16 @@ If you use the 2019 0-D model, please cite the following paper:
     note= {AIAA-2019-4246},
     title= {A 0-D model for orificed hollow cathodes with application to the scaling of total pressure},
     year= {2019}
+}
+```
+
+If you use any other part of the source code that does not fall under either case above, please cite the package:
+```
+@misc{cathodePackage,
+    author = {Wordingham, Christopher J. and Taunay, Pierre-Yves C. R.},
+    howpublished = {\url{https://github.com/eppdyl/cathode-package}},
+    year = {2017 -- },
+    note = {Retrieved [insert date]}
 }
 ```
 
