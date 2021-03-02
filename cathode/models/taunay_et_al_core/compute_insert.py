@@ -33,7 +33,7 @@
 
 import numpy as np
 
-from correlation import Te_insert, TeK_orifice, Lem
+from cathode.models.taunay_et_al_core.correlation import Te_insert, TeK_orifice, Lem
 
 import cathode.constants as cc
 from cathode.math.bisect_next import bisect_next

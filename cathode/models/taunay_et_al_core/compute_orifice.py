@@ -34,7 +34,7 @@
 import cathode.constants as cc
 from cathode.math.bisect_next import bisect_next
 
-from correlation import Te_insert, Te_orifice, TeK_orifice
+from cathode.models.taunay_et_al_core.correlation import Te_insert, Te_orifice, TeK_orifice
 
 import numpy as np
 
