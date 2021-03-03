@@ -56,7 +56,7 @@ def Te_insert(ng,ds,species):
     '''
     kbT = cc.kB * Tgcorr
     if species == 'Xe':
-        ret =  1.3 / (kbT * ng * ds * 1e2/cc.Torr)**0.34 + 0.48
+        ret =  1.20072 / (kbT * ng * ds * 1e2/cc.Torr)**0.35592 + 0.52523
     elif species == 'Ar':
 #        ret = 10**0.4588/(kbT * ng * ds * 1e2/cc.Torr)**0.30
         ret = 1.91 / (kbT * ng * ds * 1e2/cc.Torr)**0.341 + 0.945
@@ -105,7 +105,7 @@ def Lem(ng,ds,species):
     '''
     kbT = cc.kB * Tgcorr
     if species == 'Xe':
-        ret = ds/2 * (0.75 + 1/np.log(kbT * ng / cc.Torr * ds * 1e2 + 3)**6) 
+        ret = ds/2 * (0.72389 + 0.17565 / (kbT * ng * ds * 1e2/cc.Torr)**1.22140)
     elif species == 'Ar':
         ret = ds/2 * (0.86 + 0.613/np.log(kbT * ng / cc.Torr * ds * 1e2 + 1.89)**6) 
     else:
