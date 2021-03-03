@@ -366,6 +366,8 @@ def solve(Idvec,mdotvec,
         insert_results_path = insert_path + '/' + results_name 
         df.to_hdf(data_file,insert_results_path)
 
+        return insert_results_path, df
+
     else:
         f.close()
-        return
+        return None,None
