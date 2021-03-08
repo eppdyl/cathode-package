@@ -42,7 +42,7 @@ The files are organized as follows:
 * cathode/physics.py: plasma parameter calculations
 
 We have provided as much information as possible in the docstring of each function.
-The implemented 0-D models all have an interface for the solver named ```python solve```.
+The implemented 0-D models all have an interface for the solver named ```solve```.
 Because each model has a different implementation we refer the reader to the docstring of each
 to understand the format and units of the inputs for each solver interface. 
 
