@@ -334,8 +334,24 @@ def solve(Idvec,mdotvec,
         procnum = find_number_processes(insert_case) 
         # Run the cases
         print("Running cases...")
-        with mp.Pool(processes=procnum) as pool:
-            res = pool.starmap(insert_density_wrapper,insert_case)
+
+        # If procnum is None, we use *all* threads available 
+        if procnum is None:
+            with mp.Pool(processes=procnum) as pool:
+                res = pool.starmap(insert_density_wrapper,insert_case)
+        # Otherwise, procnum is an integer: we use fewer threads than there are available
+        else:
+            # We use more than one CPU thread on all cases
+            if procnum > 1:
+                with mp.Pool(processes=procnum) as pool:
+                    res = pool.starmap(insert_density_wrapper,insert_case)
+            # Or we just use a single one but loop over all cases
+            else:
+                res = []
+                for case in insert_case:
+                    t = insert_density_wrapper(*case)
+                    res.append(t)
+
         print("...done")
 
         ### Convert to a Pandas dataframe
