@@ -5,12 +5,11 @@ been published throughout the years, starting with D. Siegfried and P. J.
 Wilbur in the late 1970s. 
 
 We have re-implemented the models for a comprehensive review that was published
-in the 2017 Joint Propulsion Conference proceedings:
-```
-Wordingham, C. J., Taunay, P.-Y. C. R., and Choueiri, E. Y., "A critical
+in the 2017 Joint Propulsion Conference proceedings: 
+C. J. Wordingham, P.-Y. C. R. Taunay, and E. Y. Choueiri, "A critical
 review of hollow cathode modeling: 0-D models," 53rd AIAA/ASME/SAE/ASEE Joint 
 Propulsion Conference, 2017, AIAA-2017-4888. 
-```
+
 The re-implementation of each model is done based on the model description from 
 the original publication.
 
@@ -20,11 +19,9 @@ sections, reaction rates, and other flow quantities (e.g. Reynolds or Knudsen nu
 
 Based on the results of the review, we have implemented our own 0-D model that
 we presented at the 2019 AIAA Propulsion and Energy Forum:
-```
-Taunay, P.-Y. C. R., Wordingham, C. J., and Choueiri, E. Y., "A 0-D model for 
+P.-Y. C. R., Taunay, C. J., Wordingham and E. Y., Choueiri, "A 0-D model for 
 orificed hollow cathodes with application to the scaling of total pressure,"
 AIAA Propulsion and Energy Forum, 2019, AIAA-2019-4246.
-```
 
 ### Install 
 Clone the repository and install the library:
