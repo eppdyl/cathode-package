@@ -33,10 +33,19 @@ sudo python setup.py build install
 ```
 
 ### How to use
-In the Python code:
-```python
-import cathode
-```
+The files are organized as follows:
+* cathode/collisions: collision cross section objects and handlers to compute reaction rates
+* cathode/math: any math function required 
+* cathode/models: all 0-D models re-implemented
+* cathode/resources: any external resources that are necessary
+* cathode/constants.py: a bunch of numerical constants
+* cathode/physics.py: plasma parameter calculations
+
+We have provided as much information as possible in the docstring of each function.
+The implemented 0-D models all have an interface for the solver named ```python solve```.
+Because each model has a different implementation we refer the reader to the docstring of each
+to understand the format and units of the inputs for each solver interface. 
+
 
 ### Libraries required
 The package requires Numpy, Scipy, and h5py.
@@ -58,7 +67,7 @@ please cite our 2017 review:
 }
 ```
 
-If you use the 2019 0-D model, please cite the following paper:
+If you use the 2019 0-D model, please cite for now the following paper:
 ```
 @inproceedings{Taunay2019,
     author = {Taunay, Pierre-Yves C. R. and Wordingham, Christopher J. and Choueiri, Edgar Y.},
@@ -83,3 +92,5 @@ If you use any other part of the source code that does not fall under either cas
 ### Contact
 You can contact either Pierre-Yves Taunay (ptaunay@princeton.edu) or Chris
 Wordingham (cjw4@alumni.princeton.edu).
+
+Pierre-Yves Taunay, 2021
