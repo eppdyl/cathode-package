@@ -22,7 +22,7 @@ sections, reaction rates, and other flow quantities (e.g. Reynolds or Knudsen nu
 Based on the results of the review, we have implemented our own 0-D model that
 we presented at the 2019 AIAA Propulsion and Energy Forum:
 ```
-P.-Y. C. R., Taunay, C. J., Wordingham and E. Y., Choueiri, "A 0-D model for 
+P.-Y. C. R. Taunay, C. J. Wordingham and E. Y., Choueiri, "A 0-D model for 
 orificed hollow cathodes with application to the scaling of total pressure,"
 AIAA Propulsion and Energy Forum, 2019, AIAA-2019-4246.
 ```
