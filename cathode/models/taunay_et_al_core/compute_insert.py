@@ -340,7 +340,7 @@ def insert_density_wrapper(mdot,
         # Bisect on the logarithm of ng_i between 10^18 and 10^25
         lng_i_list = list(bisect_next(lambda lng_i: ng_target(lng_i,params),
                                      20.,
-                                     23.,
+                                     24.,
                                      0.1,
                                      xtol = 1e-6,
                                      atol = 1e-6))

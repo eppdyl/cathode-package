@@ -200,7 +200,7 @@ def solve(Idvec,mdotvec,
     if run_orifice or force_orifice_calc:
         ### Pre-compute the orifice density for a number of insert densities, 
         ### discharge currents, and mass flow rates
-        ngi_vec = np.linspace(20.,23.,10)
+        ngi_vec = np.linspace(20.,24.,10)
 
         print("Finding all orifice solutions...")
         it = itertools.product(mdot_SI,

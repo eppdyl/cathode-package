@@ -298,9 +298,9 @@ def create_cross_section_spline(filename, xsec_type, chosen=None):
     for index, line in enumerate(lines):
         if re.match(pattern, line):
             match_num += 1
-            print(str(match_num)+'.')
-            print(lines[index+4].strip())
-            print(lines[index+6].strip() + '\n')
+            #print(str(match_num)+'.')
+            #print(lines[index+4].strip())
+            #print(lines[index+6].strip() + '\n')
             matches[match_num] = index
 
     # If no matches, print warning and return None
