@@ -1,4 +1,4 @@
-[![DOI](https://zenodo.org/badge/4592503.svg)](https://zenodo.org/badge/latestdoi/4592503)
+[![DOI](https://zenodo.org/badge/282970385.svg)](https://zenodo.org/badge/latestdoi/282970385)
 # Cathode package
 ### Description
 The "cathode" Python package contains various 0-D cathode models that have
