@@ -58,8 +58,6 @@ def Te_insert(ng,ds,species):
     if species == 'Xe':
         ret =  1.20072 / (kbT * ng * ds * 1e2/cc.Torr)**0.35592 + 0.52523
     elif species == 'Ar':
-#        ret = 10**0.4588/(kbT * ng * ds * 1e2/cc.Torr)**0.30
-#        ret = 1.91 / (kbT * ng * ds * 1e2/cc.Torr)**0.341 + 0.945
         ret = 1.66426 /  (kbT * ng * ds * 1e2/cc.Torr)**0.38159 + 1.12521
     else:
         raise NotImplemented
@@ -108,7 +106,6 @@ def Lem(ng,ds,species):
     if species == 'Xe':
         ret = ds/2 * (0.72389 + 0.17565 / (kbT * ng * ds * 1e2/cc.Torr)**1.22140)
     elif species == 'Ar':
-        #ret = ds/2 * (0.86 + 0.613/np.log(kbT * ng / cc.Torr * ds * 1e2 + 1.89)**6) 
         ret = ds/2 * (0.71827 + 0.34198 / (kbT * ng * ds * 1e2/cc.Torr)**1.19716)
     else:
         raise NotImplemented
