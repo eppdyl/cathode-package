@@ -52,5 +52,5 @@ setup(name='cathode',
       license='LGPLv3',
       package_data={'': extra_files},
       packages=find_packages(),
-      install_requires=['numpy', 'scipy','h5py','pandas'],
+      install_requires=['numpy', 'scipy','h5py','pandas','tables'],
       zip_safe=False)
