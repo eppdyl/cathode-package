@@ -46,11 +46,11 @@ def package_files(directory):
 extra_files = package_files('cathode/resources')
 
 setup(name='cathode',
-      version='1.0.0',
+      version='1.1.1',
       description='Hollow cathode modeling package',
       author='Chris Wordingham <cjw4@alumni.princeton.edu>, Pierre-Yves Taunay <ptaunay@princeton.edu>',
       license='LGPLv3',
       package_data={'': extra_files},
       packages=find_packages(),
-      install_requires=['numpy', 'scipy','h5py'],
+      install_requires=['numpy', 'scipy','h5py','pandas'],
       zip_safe=False)
