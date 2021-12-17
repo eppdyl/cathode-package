@@ -51,35 +51,26 @@ from cathode.models.taunay_et_al_core.SingleCoordInterpolator import SingleCoord
 def create_h5file(Idvec, mdotvec, dc_db, do_db, Lo_db, Lupstream, Lemitter, eiz_db, TgK,
         species, data_file):
 
-    f = h5py.File(data_file, 'w')
+    with h5py.File(data_file, 'w') as f:
+        conditions_path = species + '/simulations' + '/conditions'
+        results_path = species + '/simulations' + '/results'
+        f.create_group(conditions_path)
+        f.create_group(species + '/simulations' + '/results')
 
-    conditions_path = species + '/simulations' + '/conditions'
-    results_path = species + '/simulations' + '/results'
-    f.create_group(conditions_path)
-    f.create_group(species + '/simulations' + '/results')
+        # Create the geometry dataset
+        geometry_names = ['insert_diameter', 'insert_length', 'orifice_diameter', 'orifice_length',
+                'pressure_tap_position']
+        geometry = np.array([(dc_db, Lemitter, do_db, Lo_db, Lupstream)],
+                           dtype=([(n,'f8') for n in geometry_names]))
+        f.create_dataset('geometry',data=geometry.view(np.recarray))
 
-    # Create the geometry dataset
-    geometry_names = ['insert_diameter', 'insert_length', 'orifice_diameter', 'orifice_length',
-            'pressure_tap_position']
-    geometry_dt = np.dtype({'names': geometry_names,
-        'formats':[(np.float64)]*len(geometry_names)})
-    geometry = np.recarray((1,), # shape
-            dtype=geometry_dt, # data type
-            names=geometry_names, # data name
-            buf=np.array([dc_db, Lemitter, do_db, Lo_db, Lupstream], dtype=geometry_dt) # actual data
-            )
-    f.create_dataset('geometry', data=geometry)
+        # Create the conditions dataset
+        f.create_dataset(conditions_path + '/Id_orifice', data=Idvec)
+        f.create_dataset(conditions_path + '/mdot_orifice', data=mdotvec)
 
-    # Create the conditions dataset
-    f.create_dataset(conditions_path + '/Id_orifice', data=Idvec)
-    f.create_dataset(conditions_path + '/mdot_orifice', data=mdotvec)
-
-    # Create the results groups
-    for Tg in [2000,3000,4000]:
-        f.create_group(results_path + "/" + str(Tg))
-
-    # Close the file
-    f.close()
+        # Create the results groups
+        for Tg in [2000,3000,4000]:
+            f.create_group(results_path + "/" + str(Tg))
 
 def solve(Idvec,mdotvec,
                                    M_db,
