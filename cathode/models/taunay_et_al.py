@@ -63,7 +63,7 @@ def create_h5file(Idvec, mdotvec, dc_db, do_db, Lo_db, Lupstream, Lemitter, eiz_
             'pressure_tap_position']
     geometry_dt = np.dtype({'names': geometry_names,
         'formats':[(np.float64)]*len(geometry_names)})
-    geometry = np.recarray((len(geometry_names),), # shape
+    geometry = np.recarray((1,), # shape
             dtype=geometry_dt, # data type
             names=geometry_names, # data name
             buf=np.array([dc_db, Lemitter, do_db, Lo_db, Lupstream], dtype=geometry_dt) # actual data
